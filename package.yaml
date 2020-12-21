@@ -27,6 +27,7 @@ dependencies:
 - req
 - text
 - bytestring
+- mtl
 
 library:
   source-dirs: src
