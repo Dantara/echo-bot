@@ -8,6 +8,7 @@ import           Control.Monad.Reader
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import qualified Data.Text.IO         as T
+import           Prelude              hiding (log)
 
 
 data STDLogger -- ^ Logger for standart I/O
@@ -28,6 +29,15 @@ class HasLogLevel env where
 
 class Logger m where
   log :: (MonadReader env m, HasLogLevel env) => LogLevel -> Text -> m ()
+
+
+-- | Helpers methods for logging
+logDebug, logInfo, logWarning, logError
+  :: (Logger m, MonadReader env m, HasLogLevel env) => Text -> m ()
+logDebug = log Debug
+logInfo = log Info
+logWarning = log Warning
+logError = log Error
 
 
 -- | Log to stdio
