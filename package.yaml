@@ -28,6 +28,7 @@ dependencies:
 - text
 - bytestring
 - mtl
+- transformers
 
 library:
   source-dirs: src
