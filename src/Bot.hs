@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module Bot where
 
@@ -11,8 +12,14 @@ import           Logger
 import           Message
 
 
-class (MonadReader BotEnv m, MonadIO m) => MonadBot m where
-  getMessage :: m (Maybe Message)
+class (MonadIO m, HasToken m, HasOffset m, HasMessageQueue m) => ProducerBot m where
+  data Update m :: *
+  pullUpdates :: m [Update m]
+  updateToMessage :: Update m -> Message
+  offsetOfUpdate :: Update m -> Integer
+
+
+class (MonadIO m, HasMessageQueue m, HasToken m) => ConsumerBot m where
   sendMessage :: Message -> m ()
 
 
@@ -25,10 +32,18 @@ data BotEnv = BotEnv
   }
 
 
-instance HasLogLevel BotEnv where
-  getLogLevel = logLevel
+newtype Token = Token { extractToken :: Text }
 
 
-newtype Token = Token Text
+class (Monad m) => HasOffset m where
+  getOffset :: m Integer
+  updateOffset :: Integer -> m ()
 
 
+class (Monad m) => HasMessageQueue m where
+  pullMessage :: m (Maybe Message)
+  pushMessage :: Message -> m ()
+
+
+class (Monad m) => HasToken m where
+  getToken :: m Token

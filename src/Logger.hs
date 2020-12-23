@@ -23,17 +23,13 @@ data LogLevel
   deriving (Eq, Ord, Show)
 
 
-class HasLogLevel env where
-  getLogLevel :: env -> LogLevel
-
-
 class Logger m where
-  log :: (MonadReader env m, HasLogLevel env) => LogLevel -> Text -> m ()
+  log :: LogLevel -> Text -> m ()
+  getLogLevel :: m LogLevel
 
 
 -- | Helpers methods for logging
-logDebug, logInfo, logWarning, logError
-  :: (Logger m, MonadReader env m, HasLogLevel env) => Text -> m ()
+logDebug, logInfo, logWarning, logError :: Logger m => Text -> m ()
 logDebug = log Debug
 logInfo = log Info
 logWarning = log Warning
@@ -41,8 +37,8 @@ logError = log Error
 
 
 -- | Log to stdio
-logSTD :: (MonadReader env m, HasLogLevel env, MonadIO m) => LogLevel -> Text -> m ()
-logSTD l t = asks getLogLevel >>= \l' ->
+logSTD :: (Logger m, MonadIO m) => LogLevel -> Text -> m ()
+logSTD l t = getLogLevel >>= \l' ->
   if l > l' then liftIO (T.putStrLn msg) else pure ()
     where
       msg = "[" <> T.pack (show l) <> "] " <> t
