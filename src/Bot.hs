@@ -12,23 +12,25 @@ import           Logger
 import           Message
 
 
-class (MonadIO m, HasToken m, HasOffset m, HasMessageQueue m) => ProducerBot m where
+class (MonadIO m, HasToken m, HasOffset m, HasMessageQueue m, Logger m) => ProducerBot m where
   data Update m :: *
   pullUpdates :: m [Update m]
   updateToMessage :: Update m -> Message
   offsetOfUpdate :: Update m -> Integer
 
 
-class (MonadIO m, HasMessageQueue m, HasToken m) => ConsumerBot m where
+class (MonadIO m, HasMessageQueue m, HasToken m, Logger m) => ConsumerBot m where
   sendMessage :: Message -> m ()
 
 
 data BotEnv = BotEnv
   {
-    offset    :: TVar Integer
-  , tMessages :: TQueue Message
-  , token     :: Token
-  , logLevel  :: LogLevel
+    offset        :: TVar Integer
+  , tMessages     :: TQueue Message
+  , token         :: Token
+  , logLevel      :: LogLevel
+  , producerDelay :: Int
+  , consumerDelay :: Int
   }
 
 

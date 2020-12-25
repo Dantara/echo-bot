@@ -39,7 +39,7 @@ logError = log Error
 -- | Log to stdio
 logSTD :: (Logger m, MonadIO m) => LogLevel -> Text -> m ()
 logSTD l t = getLogLevel >>= \l' ->
-  if l > l' then liftIO (T.putStrLn msg) else pure ()
+  if l >= l' then liftIO (T.putStrLn msg) else pure ()
     where
       msg = "[" <> T.pack (show l) <> "] " <> t
 

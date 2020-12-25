@@ -6,19 +6,20 @@
 module Bot.Telegram where
 
 import           Bot
+import           Control.Concurrent
 import           Control.Concurrent.STM.TQueue
 import           Control.Concurrent.STM.TVar
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Control.Monad.STM
 import           Data.Aeson
-import           Data.Aeson.Types
+-- import           Data.Aeson.Types
 import           Logger
 import           Message
 import           Network.HTTP.Req
 
 
-newtype TelegramBot x = TelegramBot (ReaderT BotEnv IO x)
+newtype TelegramBot a = TelegramBot { unwrapBot :: ReaderT BotEnv IO a }
   deriving ( Functor
            , Applicative
            , Monad
@@ -46,10 +47,12 @@ instance ProducerBot TelegramBot where
     o <- getOffset
 
     let payload = object
-          [ "offset" .= o
+          [ "offset" .= (o + 1)
           ]
 
     token' <- ("bot" <>) . extractToken <$> getToken
+
+    logDebug "Fetching updates from Telegram"
 
     r <- runReq defaultHttpConfig
       $ req
@@ -98,6 +101,28 @@ newtype Updates = Updates { extractUpdates :: [Update TelegramBot] }
 instance FromJSON Updates where
   parseJSON = withObject "Updates" $ \us -> Updates
     <$> us .: "result"
+
+
+runBot :: TelegramBot a -> BotEnv -> IO a
+runBot app = runReaderT (unwrapBot app)
+
+
+loopBot :: TelegramBot a -> BotEnv -> (BotEnv -> Int) -> IO ()
+loopBot app env f = void $ forkIO $ forever $ do
+  _ <- runBot app env
+  threadDelay $ f env
+
+
+
+-- instance ProducerDelay TelegramBot where
+--   getProducerDelay = asks producerDelay
+--   delayProducer = getProducerDelay >>= liftIO . threadDelay
+
+
+-- instance ConsumerDelay TelegramBot where
+--   getConsumerDelay = asks producerDelay
+--   delayConsumer = getConsumerDelay >>= liftIO . threadDelay
+
 
 
 -- pullUpdates :: IO ()
