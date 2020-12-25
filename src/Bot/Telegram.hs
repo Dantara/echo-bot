@@ -28,10 +28,6 @@ newtype TelegramBot a = TelegramBot { unwrapBot :: ReaderT BotEnv IO a }
            )
 
 
-instance ConsumerBot TelegramBot where
-  sendMessage = liftIO . print
-
-
 instance Logger TelegramBot where
   log = logSTD
   getLogLevel = asks logLevel
@@ -68,6 +64,22 @@ instance ProducerBot TelegramBot where
 
   offsetOfUpdate = updateId
 
+
+instance ConsumerBot TelegramBot where
+  sendMessage m = do
+    token' <- ("bot" <>) . extractToken <$> getToken
+
+    logDebug "Sending Telegram response"
+
+    _ <- runReq defaultHttpConfig
+      $ req
+          POST
+          (https "api.telegram.org" /: token' /: "sendMessage")
+          (ReqBodyJson m)
+          ignoreResponse
+          mempty
+
+    pure ()
 
 instance HasOffset TelegramBot where
   getOffset = asks offset >>= liftIO . readTVarIO
@@ -112,32 +124,3 @@ loopBot app env f = void $ forkIO $ forever $ do
   _ <- runBot app env
   threadDelay $ f env
 
-
-
--- instance ProducerDelay TelegramBot where
---   getProducerDelay = asks producerDelay
---   delayProducer = getProducerDelay >>= liftIO . threadDelay
-
-
--- instance ConsumerDelay TelegramBot where
---   getConsumerDelay = asks producerDelay
---   delayConsumer = getConsumerDelay >>= liftIO . threadDelay
-
-
-
--- pullUpdates :: IO ()
--- pullUpdates = do
---   let payload =
---         object
---           [ "offset" .= (0 :: Int)
---           ]
---   r <- runReq defaultHttpConfig
---     $ req
---         POST
---         (https "api.telegram.org" /: token' /: "getUpdates")
---         (ReqBodyJson payload)
---         jsonResponse
---         mempty
---   liftIO $ print (responseBody r :: Updates)
---     where
---       token' = "bot" <> "1470862909:AAGZF-lhbKci7azP-NHsxiTCdGJ4flHlTDo"
