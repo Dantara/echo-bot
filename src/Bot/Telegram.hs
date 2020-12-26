@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
@@ -13,19 +16,101 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Control.Monad.STM
 import           Data.Aeson
--- import           Data.Aeson.Types
+import           Data.Char                     (toLower)
+import           Data.Text                     (Text)
+import           GHC.Generics
+import           Helpers
 import           Logger
 import           Message
 import           Network.HTTP.Req
 
 
 newtype TelegramBot a = TelegramBot { unwrapBot :: ReaderT BotEnv IO a }
-  deriving ( Functor
-           , Applicative
-           , Monad
-           , MonadIO
-           , MonadReader BotEnv
-           )
+  deriving newtype ( Functor
+                   , Applicative
+                   , Monad
+                   , MonadIO
+                   , MonadReader BotEnv
+                   )
+
+
+data ReceivedMessage = ReceivedMessage
+  { chatId          :: Integer
+  , messageId       :: Integer
+  , text            :: Maybe Text
+  , audio           :: Maybe FileInfo
+  , document        :: Maybe FileInfo
+  , photo           :: Maybe [FileInfo]
+  , sticker         :: Maybe FileInfo
+  , video           :: Maybe FileInfo
+  , videoNote       :: Maybe FileInfo
+  , voice           :: Maybe FileInfo
+  , caption         :: Maybe Text
+  , contact         :: Maybe Contact
+  , dice            :: Maybe Dice
+  , venue           :: Maybe Venue
+  , messageLocation :: Maybe Location
+  }
+
+instance FromJSON ReceivedMessage where
+  parseJSON = withObject "ReceivedMessage" $ \msg -> ReceivedMessage
+    <$> (msg .: "chat" >>= (.: "id"))
+    <*> msg .: "message_id"
+    <*> msg .:? "text"
+    <*> msg .:? "audio"
+    <*> msg .:? "document"
+    <*> msg .:? "photo"
+    <*> msg .:? "sticker"
+    <*> msg .:? "video"
+    <*> msg .:? "video_note"
+    <*> msg .:? "voice"
+    <*> msg .:? "caption"
+    <*> msg .:? "contact"
+    <*> msg .:? "dice"
+    <*> msg .:? "venue"
+    <*> msg .:? "location"
+
+data Contact = Contact
+  { phoneNumber :: Text
+  , firstName   :: Text
+  , lastName    :: Maybe Text
+  , userId      :: Maybe Integer
+  , vcard       :: Maybe Text
+  } deriving (Generic)
+
+instance FromJSON Contact where
+  parseJSON = genericParseJSON defaultOptions {
+    fieldLabelModifier = camelToSnakeCase }
+
+data Dice = Dice
+  { diceEmoji :: Text
+  , diceValue :: Int
+  } deriving (Generic)
+
+instance FromJSON Dice where
+  parseJSON = genericParseJSON defaultOptions {
+    fieldLabelModifier = map toLower . drop 4 }
+
+data Location = Location
+  { longitude :: Float
+  , latitude  :: Float
+  } deriving (Generic, FromJSON)
+
+data Venue = Venue
+  { venueLocation :: Location
+  , venueTitle    :: Text
+  , venueAddress  :: Text
+  } deriving (Generic)
+
+instance FromJSON Venue where
+  parseJSON = genericParseJSON defaultOptions {
+    fieldLabelModifier = map toLower . drop 5 }
+
+newtype FileInfo = FileInfo { fileId :: Text }
+
+instance FromJSON FileInfo where
+  parseJSON = withObject "FileInfo" $ \f -> FileInfo
+    <$> f .: "file_id"
 
 
 instance Logger TelegramBot where
@@ -123,4 +208,3 @@ loopBot :: TelegramBot a -> BotEnv -> (BotEnv -> Int) -> IO ()
 loopBot app env f = void $ forkIO $ forever $ do
   _ <- runBot app env
   threadDelay $ f env
-

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 699bb322721405fbd7a8b86a354732f88fa1d81e8fd827bad4737f12511a3f60
+-- hash: 59419b17a15b68687ed03e9a971a045a49ba9799b796f9139cfd3fe640d37f7b
 
 name:           echo-bot
 version:        0.1.0.0
@@ -29,6 +29,7 @@ library
   exposed-modules:
       Bot
       Bot.Telegram
+      Helpers
       Logger
       Logic
       Message
