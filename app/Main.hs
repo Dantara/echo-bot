@@ -10,7 +10,7 @@ import           Control.Monad
 import           Logger
 import           Logic
 
-defaultEnv :: IO BotEnv
+defaultEnv :: IO (BotEnv Msg)
 defaultEnv = do
   offset' <- newTVarIO 0
   queue' <- newTQueueIO
