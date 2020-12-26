@@ -258,7 +258,39 @@ instance ProducerBot TelegramBot where
 
 
 instance ConsumerBot TelegramBot where
-  sendMessage m = do
+  sendMessage m = case msgContent m of
+    TextContent _ ->
+      genericSendMessage m "sendMessage"
+    AudioContent _ ->
+      genericSendMessage m "sendAudio"
+    DocumentContent _ _ ->
+      genericSendMessage m "sendDocument"
+    PhotoContent _ _ ->
+      genericSendMessage m "sendPhoto"
+    StickerContent _ ->
+      genericSendMessage m "sendSticker"
+    VideoContent _ _ ->
+      genericSendMessage m "sendVideo"
+    VideoNoteContent _ ->
+      genericSendMessage m "sendVideoNote"
+    VoiceContent _ ->
+      genericSendMessage m "sendVoice"
+    ContactContent _ ->
+      genericSendMessage m "sendContact"
+    DiceContent _ ->
+      genericSendMessage m "sendDice"
+    VenueContent _ ->
+      genericSendMessage m "sendVenue"
+    LocationContent _ ->
+      genericSendMessage m "sendLocation"
+    PollContent _ ->
+      genericSendMessage m "forwardMessage"
+    UnsupportedContent _ ->
+      genericSendMessage m "forwardMessage"
+
+
+genericSendMessage :: Msg -> Text -> TelegramBot ()
+genericSendMessage m u = do
     token' <- ("bot" <>) . extractToken <$> getToken
 
     logDebug "Sending Telegram response"
@@ -266,12 +298,13 @@ instance ConsumerBot TelegramBot where
     _ <- runReq defaultHttpConfig
       $ req
           POST
-          (https "api.telegram.org" /: token' /: "sendMessage")
+          (https "api.telegram.org" /: token' /: u)
           (ReqBodyJson m)
           ignoreResponse
           mempty
 
     pure ()
+
 
 instance HasOffset TelegramBot where
   getOffset = asks offset >>= liftIO . readTVarIO
