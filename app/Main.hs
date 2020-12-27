@@ -18,7 +18,15 @@ defaultEnv = do
   let logLevel' = Debug
   let producerDelay' = 1000000
   let consumerDelay' = 1000000
-  pure $ BotEnv offset' queue' token' logLevel' producerDelay' consumerDelay'
+  let helpMsg' = "Arbitrary help message"
+  pure $ BotEnv
+    offset'
+    queue'
+    token'
+    logLevel'
+    producerDelay'
+    consumerDelay'
+    helpMsg'
 
 
 main :: IO ()

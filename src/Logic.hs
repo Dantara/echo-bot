@@ -11,7 +11,7 @@ producer :: (ProducerBot m, Logger m) => m ()
 producer = pullUpdates >>= mapM_ proceedUpdate
   where
     proceedUpdate u = do
-      pushMessage $ updateToMessage u
+      pushMessage =<< updateToMessage u
       updateOffset $ offsetOfUpdate u
 
 

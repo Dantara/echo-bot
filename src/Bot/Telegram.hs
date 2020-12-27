@@ -58,7 +58,8 @@ data Msg = Msg
   }
 
 data MsgContent
-  = TextContent Text
+  = CommandContent Command
+  | TextContent Text
   | AudioContent FileInfo
   | DocumentContent FileInfo (Maybe Text)
   | PhotoContent FileInfo (Maybe Text)
@@ -73,26 +74,31 @@ data MsgContent
   | PollContent Integer
   | UnsupportedContent Integer
 
+data Command
+  = HelpCommand Text
 
 instance ToJSON Msg where
   toJSON (Msg ci (TextContent t))
     = object ["chat_id" .= ci, "text" .= t]
   toJSON (Msg ci (AudioContent (FileInfo t)))
     = object ["chat_id" .= ci, "audio" .= t]
-  toJSON (Msg ci (DocumentContent (FileInfo t) (Just c)))
-    = object ["chat_id" .= ci, "document" .= t, "caption" .= c]
-  toJSON (Msg ci (DocumentContent (FileInfo t) Nothing))
-    = object ["chat_id" .= ci, "document" .= t]
-  toJSON (Msg ci (PhotoContent (FileInfo t) (Just c)))
-    = object ["chat_id" .= ci, "photo" .= t, "caption" .= c]
-  toJSON (Msg ci (PhotoContent (FileInfo t) Nothing))
-    = object ["chat_id" .= ci, "photo" .= t]
+  toJSON (Msg ci (DocumentContent (FileInfo t) c))
+    = object [ "chat_id" .= ci
+             , "document" .= t
+             , "caption" .= c
+             ]
+  toJSON (Msg ci (PhotoContent (FileInfo t) c))
+    = object [ "chat_id" .= ci
+             , "photo" .= t
+             , "caption" .= c
+             ]
   toJSON (Msg ci (StickerContent (FileInfo t)))
     = object ["chat_id" .= ci, "sticker" .= t]
-  toJSON (Msg ci (VideoContent (FileInfo t) (Just c)))
-    = object ["chat_id" .= ci, "video" .= t, "caption" .= c]
-  toJSON (Msg ci (VideoContent (FileInfo t) Nothing))
-    = object ["chat_id" .= ci, "video" .= t]
+  toJSON (Msg ci (VideoContent (FileInfo t) c))
+    = object [ "chat_id" .= ci
+             , "video" .= t
+             , "caption" .= c
+             ]
   toJSON (Msg ci (VideoNoteContent (FileInfo t)))
     = object ["chat_id" .= ci, "video_note" .= t]
   toJSON (Msg ci (VoiceContent (FileInfo t)))
@@ -128,35 +134,37 @@ instance ToJSON Msg where
              , "message_id" .= i]
 
 
-receivedMsgToMsg :: ReceivedMsg -> Msg
+receivedMsgToMsg :: ReceivedMsg -> TelegramBot Msg
+receivedMsgToMsg (ReceivedMsg ci _ (Just "/help") _ _ _ _ _ _ _ _ _ _ _ _ _)
+  = getHelpMsg >>= \h -> pure $ Msg ci (TextContent h)
 receivedMsgToMsg (ReceivedMsg ci _ (Just t) _ _ _ _ _ _ _ _ _ _ _ _ _)
-  = Msg ci (TextContent t)
+  = pure $ Msg ci (TextContent t)
 receivedMsgToMsg (ReceivedMsg ci _ _ (Just f) _ _ _ _ _ _ _ _ _ _ _ _)
-  = Msg ci (AudioContent f)
+  = pure $ Msg ci (AudioContent f)
 receivedMsgToMsg (ReceivedMsg ci _ _ _ (Just f) _ _ _ _ _ c _ _ _ _ _)
-  = Msg ci (DocumentContent f c)
+  = pure $ Msg ci (DocumentContent f c)
 receivedMsgToMsg (ReceivedMsg ci _ _ _ _ (Just fs) _ _ _ _ c _ _ _ _ _)
-  = Msg ci (PhotoContent (last fs) c)
+  = pure $ Msg ci (PhotoContent (last fs) c)
 receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ (Just f) _ _ _ _ _ _ _ _ _)
-  = Msg ci (StickerContent f)
+  = pure $ Msg ci (StickerContent f)
 receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ (Just f) _ _ c _ _ _ _ _)
-  = Msg ci (VideoContent f c)
+  = pure $ Msg ci (VideoContent f c)
 receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ (Just f) _ _ _ _ _ _ _)
-  = Msg ci (VideoNoteContent f)
+  = pure $ Msg ci (VideoNoteContent f)
 receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ (Just f) _ _ _ _ _ _)
-  = Msg ci (VoiceContent f)
+  = pure $ Msg ci (VoiceContent f)
 receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ (Just c) _ _ _ _)
-  = Msg ci (ContactContent c)
+  = pure $ Msg ci (ContactContent c)
 receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ (Just d) _ _ _)
-  = Msg ci (DiceContent d)
+  = pure $ Msg ci (DiceContent d)
 receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ _ (Just v) _ _)
-  = Msg ci (VenueContent v)
+  = pure $ Msg ci (VenueContent v)
 receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ _ _ (Just l) _)
-  = Msg ci (LocationContent l)
+  = pure $ Msg ci (LocationContent l)
 receivedMsgToMsg (ReceivedMsg ci i _ _ _ _ _ _ _ _ _ _ _ _ _ (Just ()))
-  = Msg ci (PollContent i)
+  = pure $ Msg ci (PollContent i)
 receivedMsgToMsg (ReceivedMsg ci i _ _ _ _ _ _ _ _ _ _ _ _ _ _)
-  = Msg ci (UnsupportedContent i)
+  = pure $ Msg ci (UnsupportedContent i)
 
 
 instance FromJSON ReceivedMsg where
@@ -323,6 +331,10 @@ instance HasMessageQueue TelegramBot where
 
 instance HasToken TelegramBot where
   getToken = asks token
+
+
+instance HasHelpMsg TelegramBot where
+  getHelpMsg = asks helpMsg
 
 
 instance FromJSON (Update TelegramBot) where
