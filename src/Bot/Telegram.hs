@@ -17,11 +17,15 @@ import           Control.Monad.Reader
 import           Control.Monad.STM
 import           Data.Aeson
 import           Data.Char                     (toLower)
+import qualified Data.Map.Strict               as Map
+import qualified Data.Set                      as Set
 import           Data.Text                     (Text)
+import qualified Data.Text                     as Text
 import           GHC.Generics
 import           Helpers
 import           Logger
 import           Network.HTTP.Req
+import           Text.Read
 
 
 newtype TelegramBot a = TelegramBot { unwrapBot :: ReaderT (BotEnv Msg) IO a }
@@ -49,7 +53,7 @@ data ReceivedMsg = ReceivedMsg
   , receivedDice            :: Maybe Dice
   , receivedVenue           :: Maybe Venue
   , receivedMessageLocation :: Maybe Location
-  , receivedPoll            :: Maybe ()
+  , receivedPoll            :: Maybe () -- Need to fix
   }
 
 data Msg = Msg
@@ -74,12 +78,31 @@ data MsgContent
   | PollContent Integer
   | UnsupportedContent Integer
 
-data Command
-  = HelpCommand Text
-
 instance ToJSON Msg where
-  toJSON (Msg ci (TextContent t))
+  toJSON (Msg ci (CommandContent (HelpCommand t)))
     = object ["chat_id" .= ci, "text" .= t]
+  toJSON (Msg ci (CommandContent (RepeatCommand t)))
+    = object [ "chat_id" .= ci
+             , "text" .= t
+             , "reply_markup" .= object
+               [ "keyboard" .= toJSON
+                 [ [ object [ "text" .= ("1" :: Text)]
+                   , object [ "text" .= ("2" :: Text)]
+                   ]
+                 , [ object [ "text" .= ("3" :: Text)]
+                   , object [ "text" .= ("4" :: Text)]
+                   ]
+                 , [object [ "text" .= ("5" :: Text)] ]
+                 ]
+               ]
+             ]
+  toJSON (Msg ci (TextContent t))
+    = object [ "chat_id" .= ci
+             , "text" .= t
+             , "reply_markup" .= object
+               [ "remove_keyboard" .= True
+               ]
+             ]
   toJSON (Msg ci (AudioContent (FileInfo t)))
     = object ["chat_id" .= ci, "audio" .= t]
   toJSON (Msg ci (DocumentContent (FileInfo t) c))
@@ -136,7 +159,14 @@ instance ToJSON Msg where
 
 receivedMsgToMsg :: ReceivedMsg -> TelegramBot Msg
 receivedMsgToMsg (ReceivedMsg ci _ (Just "/help") _ _ _ _ _ _ _ _ _ _ _ _ _)
-  = getHelpMsg >>= \h -> pure $ Msg ci (TextContent h)
+  = getHelpMsg >>= \h -> pure $ Msg ci (CommandContent (HelpCommand h))
+receivedMsgToMsg (ReceivedMsg ci _ (Just "/repeat") _ _ _ _ _ _ _ _ _ _ _ _ _) = do
+  q <- getRepsQuestion
+  rs <- getRepetitions ci
+  let firstLine = "Currently repetitions amount is " <>
+                  Text.pack (show rs) <> "\n"
+  pure $ Msg ci (CommandContent (RepeatCommand (firstLine <> q)))
+
 receivedMsgToMsg (ReceivedMsg ci _ (Just t) _ _ _ _ _ _ _ _ _ _ _ _ _)
   = pure $ Msg ci (TextContent t)
 receivedMsgToMsg (ReceivedMsg ci _ _ (Just f) _ _ _ _ _ _ _ _ _ _ _ _)
@@ -267,6 +297,8 @@ instance ProducerBot TelegramBot where
 
 instance ConsumerBot TelegramBot where
   sendMessage m = case msgContent m of
+    CommandContent _ ->
+      genericSendMessage m "sendMessage"
     TextContent _ ->
       genericSendMessage m "sendMessage"
     AudioContent _ ->
@@ -295,6 +327,8 @@ instance ConsumerBot TelegramBot where
       genericSendMessage m "forwardMessage"
     UnsupportedContent _ ->
       genericSendMessage m "forwardMessage"
+
+  chatIdOfMessage = pure . chatId
 
 
 genericSendMessage :: Msg -> Text -> TelegramBot ()
@@ -336,6 +370,47 @@ instance HasToken TelegramBot where
 instance HasHelpMsg TelegramBot where
   getHelpMsg = asks helpMsg
 
+
+instance HasRepetitions TelegramBot where
+  getRepetitions ci = do
+    rs <- liftIO . readTVarIO =<< asks repetitions
+    dr <- asks defaultReps
+    pure $ Map.findWithDefault dr ci rs
+
+  updateRepetitions i ci = do
+    rs <- asks repetitions
+    liftIO $ atomically $ modifyTVar' rs (Map.insert ci i)
+
+instance RepetitionsHandler TelegramBot where
+  handleRepetitions msg@(Msg ci (CommandContent (RepeatCommand _))) = do
+    rs <- asks repsCommandCalled
+    liftIO $ atomically $ modifyTVar' rs (Set.insert ci)
+    logInfo "User wants to update repetitions amount"
+    pure msg
+
+  handleRepetitions msg@(Msg ci (TextContent t)) = do
+    trs <- asks repsCommandCalled
+    rs <- liftIO $ readTVarIO trs
+
+    case (Set.member ci rs, readMaybe $ Text.unpack t) of
+      (True, Just i) -> do
+        if i > 0 then do
+          updateRepetitions i ci
+          liftIO $ atomically $ modifyTVar' trs (Set.delete ci)
+          logInfo "User repetitions was updated"
+        else
+          logWarning "User supplied wrong number of repetitions"
+        pure $ Msg ci (TextContent "Repetitions amount was updated!")
+      (True, Nothing) -> do
+          logWarning "User supplied malformed number of repetitions"
+          pure msg
+      (False, _) ->
+        pure msg
+
+  handleRepetitions msg = pure msg
+
+instance HasRepsQuestion TelegramBot where
+  getRepsQuestion = asks repsQuestion
 
 instance FromJSON (Update TelegramBot) where
   parseJSON = withObject "Update" $ \upd -> Update
