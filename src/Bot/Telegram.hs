@@ -12,6 +12,7 @@ import           Bot
 import           Control.Concurrent
 import           Control.Concurrent.STM.TQueue
 import           Control.Concurrent.STM.TVar
+import           Control.Exception
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Control.Monad.STM
@@ -53,7 +54,6 @@ data ReceivedMsg = ReceivedMsg
   , receivedDice            :: Maybe Dice
   , receivedVenue           :: Maybe Venue
   , receivedMessageLocation :: Maybe Location
-  , receivedPoll            :: Maybe () -- Need to fix
   }
 
 data Msg = Msg
@@ -75,7 +75,6 @@ data MsgContent
   | DiceContent Dice
   | VenueContent Venue
   | LocationContent Location
-  | PollContent Integer
   | UnsupportedContent Integer
 
 instance ToJSON Msg where
@@ -147,10 +146,6 @@ instance ToJSON Msg where
              , "latitide" .= la
              , "longitide" .= lo
              ]
-  toJSON (Msg ci (PollContent i))
-    = object [ "chat_id" .= ci
-             , "from_chat_id" .= ci
-             , "message_id" .= i]
   toJSON (Msg ci (UnsupportedContent i))
     = object [ "chat_id" .= ci
              , "from_chat_id" .= ci
@@ -158,42 +153,41 @@ instance ToJSON Msg where
 
 
 receivedMsgToMsg :: ReceivedMsg -> TelegramBot Msg
-receivedMsgToMsg (ReceivedMsg ci _ (Just "/help") _ _ _ _ _ _ _ _ _ _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ (Just "/help") _ _ _ _ _ _ _ _ _ _ _ _)
   = getHelpMsg >>= \h -> pure $ Msg ci (CommandContent (HelpCommand h))
-receivedMsgToMsg (ReceivedMsg ci _ (Just "/repeat") _ _ _ _ _ _ _ _ _ _ _ _ _) = do
+
+receivedMsgToMsg (ReceivedMsg ci _ (Just "/repeat") _ _ _ _ _ _ _ _ _ _ _ _) = do
   q <- getRepsQuestion
   rs <- getRepetitions ci
   let firstLine = "Currently repetitions amount is " <>
                   Text.pack (show rs) <> "\n"
   pure $ Msg ci (CommandContent (RepeatCommand (firstLine <> q)))
 
-receivedMsgToMsg (ReceivedMsg ci _ (Just t) _ _ _ _ _ _ _ _ _ _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ (Just t) _ _ _ _ _ _ _ _ _ _ _ _)
   = pure $ Msg ci (TextContent t)
-receivedMsgToMsg (ReceivedMsg ci _ _ (Just f) _ _ _ _ _ _ _ _ _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ _ (Just f) _ _ _ _ _ _ _ _ _ _ _)
   = pure $ Msg ci (AudioContent f)
-receivedMsgToMsg (ReceivedMsg ci _ _ _ (Just f) _ _ _ _ _ c _ _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ _ _ (Just f) _ _ _ _ _ c _ _ _ _)
   = pure $ Msg ci (DocumentContent f c)
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ (Just fs) _ _ _ _ c _ _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ _ _ _ (Just fs) _ _ _ _ c _ _ _ _)
   = pure $ Msg ci (PhotoContent (last fs) c)
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ (Just f) _ _ _ _ _ _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ (Just f) _ _ _ _ _ _ _ _)
   = pure $ Msg ci (StickerContent f)
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ (Just f) _ _ c _ _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ (Just f) _ _ c _ _ _ _)
   = pure $ Msg ci (VideoContent f c)
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ (Just f) _ _ _ _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ (Just f) _ _ _ _ _ _)
   = pure $ Msg ci (VideoNoteContent f)
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ (Just f) _ _ _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ (Just f) _ _ _ _ _)
   = pure $ Msg ci (VoiceContent f)
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ (Just c) _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ (Just c) _ _ _)
   = pure $ Msg ci (ContactContent c)
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ (Just d) _ _ _)
+receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ (Just d) _ _)
   = pure $ Msg ci (DiceContent d)
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ _ (Just v) _ _)
+receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ _ (Just v) _)
   = pure $ Msg ci (VenueContent v)
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ _ _ (Just l) _)
+receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ _ _ (Just l))
   = pure $ Msg ci (LocationContent l)
-receivedMsgToMsg (ReceivedMsg ci i _ _ _ _ _ _ _ _ _ _ _ _ _ (Just ()))
-  = pure $ Msg ci (PollContent i)
-receivedMsgToMsg (ReceivedMsg ci i _ _ _ _ _ _ _ _ _ _ _ _ _ _)
+receivedMsgToMsg (ReceivedMsg ci i _ _ _ _ _ _ _ _ _ _ _ _ _)
   = pure $ Msg ci (UnsupportedContent i)
 
 
@@ -214,7 +208,6 @@ instance FromJSON ReceivedMsg where
     <*> msg .:? "dice"
     <*> msg .:? "venue"
     <*> msg .:? "location"
-    <*> msg .:? "poll"
 
 data Contact = Contact
   { phoneNumber :: Text
@@ -280,8 +273,7 @@ instance ProducerBot TelegramBot where
 
     logDebug "Fetching updates from Telegram"
 
-    r <- runReq defaultHttpConfig
-      $ req
+    r <- req
           POST
           (https "api.telegram.org" /: token' /: "getUpdates")
           (ReqBodyJson payload)
@@ -323,8 +315,6 @@ instance ConsumerBot TelegramBot where
       genericSendMessage m "sendVenue"
     LocationContent _ ->
       genericSendMessage m "sendLocation"
-    PollContent _ ->
-      genericSendMessage m "forwardMessage"
     UnsupportedContent _ ->
       genericSendMessage m "forwardMessage"
 
@@ -337,8 +327,7 @@ genericSendMessage m u = do
 
     logDebug "Sending Telegram response"
 
-    _ <- runReq defaultHttpConfig
-      $ req
+    _ <- req
           POST
           (https "api.telegram.org" /: token' /: u)
           (ReqBodyJson m)
@@ -418,6 +407,16 @@ instance FromJSON (Update TelegramBot) where
     <*> upd .: "message"
 
 
+instance MonadHttp TelegramBot where
+  handleHttpException e = do
+    logError "Error occured in Http request:"
+    tId <- asks mainThreadId
+    liftIO $ throwTo tId e
+    liftIO $ throwIO e
+
+  getHttpConfig = pure defaultHttpConfig
+
+
 newtype Updates = Updates { extractUpdates :: [Update TelegramBot] }
 
 
@@ -431,6 +430,6 @@ runBot app = runReaderT (unwrapBot app)
 
 
 loopBot :: TelegramBot a -> BotEnv Msg -> (BotEnv Msg -> Int) -> IO ()
-loopBot app env f = void $ forkIO $ forever $ do
-  _ <- runBot app env
-  threadDelay $ f env
+loopBot app env f = void $ forkFinally
+  (forever $ runBot app env >> threadDelay (f env))
+  (either (const $ myThreadId >>= killThread) (const $ pure ()))

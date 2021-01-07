@@ -23,6 +23,7 @@ defaultEnv = do
   let producerDelay' = 1000000
   let consumerDelay' = 1000000
   let helpMsg' = "Arbitrary help message"
+  tId <- myThreadId
   pure $ BotEnv
     offset'
     queue'
@@ -35,6 +36,7 @@ defaultEnv = do
     1
     rcc
     "How many times repeat?"
+    tId
 
 
 

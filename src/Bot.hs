@@ -4,6 +4,7 @@
 
 module Bot where
 
+import           Control.Concurrent
 import           Control.Concurrent.STM.TQueue
 import           Control.Concurrent.STM.TVar
 import           Control.Monad.Reader
@@ -51,6 +52,7 @@ data BotEnv ms = BotEnv
   , defaultReps       :: Int
   , repsCommandCalled :: TVar (Set ChatId)
   , repsQuestion      :: Text
+  , mainThreadId      :: ThreadId
   }
 
 data Command
