@@ -14,46 +14,71 @@ import           Data.Text                     (Text)
 import           Logger
 
 
-class ( MonadIO m
-      , HasToken m
-      , HasOffset m
-      , HasMessageQueue m
-      , Logger m
-      , HasHelpMsg m
-      , RepetitionsHandler m
-      ) => ProducerBot m where
-  pullUpdates :: m [Update m]
+-- class ( MonadIO m
+--       , HasToken m
+--       , HasOffset m
+--       , HasMessageQueue m
+--       , Logger m
+--       , HasHelpMsg m
+--       , RepetitionsHandler m
+--       ) => ProducerBot m where
+--   pullUpdates :: m [Update m]
+--   updateToMessage :: Update m -> m (Message m)
+--   offsetOfUpdate :: Update m -> Integer
+
+
+-- class ( MonadIO m
+--       , HasMessageQueue m
+--       , HasToken m
+--       , HasRepetitions m
+--       , Logger m
+--       ) => ConsumerBot m where
+--   sendMessage :: Message m -> m ()
+--   chatIdOfMessage :: Message m -> m ChatId
+
+
+class (MonadIO m, Logger m, HasUpdateQueue m) => MonadFetcher m where
+  fetchUpdates :: m [Update m]
+
+
+class (Monad m) => HasUpdateQueue m where
+  type Update m :: *
+  pushUpdate :: Update m -> m ()
+  pullUpdate :: m (Update m)
+
+
+class (Monad m) => HasMessageQueue m where
+  type Message m :: *
+  pushMessage :: Message m -> m ()
+  pullMessage :: m (Message m)
+
+
+class (Monad m, HasUpdateQueue m, HasMessageQueue m, Logger m) => MonadProcessor m where
   updateToMessage :: Update m -> m (Message m)
-  offsetOfUpdate :: Update m -> Integer
 
 
-class ( MonadIO m
-      , HasMessageQueue m
-      , HasToken m
-      , HasRepetitions m
-      , Logger m
-      ) => ConsumerBot m where
+class (MonadIO m, HasMessageQueue m, Logger m) => MonadSender m where
   sendMessage :: Message m -> m ()
   chatIdOfMessage :: Message m -> m ChatId
 
-class (Monad m) => BotTypes m where
-  data Update m :: *
-  type Message m :: *
+-- class (Monad m) => BotTypes m where
+--   data Update m :: *
+--   type Message m :: *
 
-data BotEnv ms = BotEnv
-  { offset            :: TVar Integer
-  , tMessages         :: TQueue ms
-  , token             :: Token
-  , logLevel          :: LogLevel
-  , producerDelay     :: Int
-  , consumerDelay     :: Int
-  , helpMsg           :: Text
-  , repetitions       :: TVar (Map ChatId Int)
-  , defaultReps       :: Int
-  , repsCommandCalled :: TVar (Set ChatId)
-  , repsQuestion      :: Text
-  , mainThreadId      :: ThreadId
-  }
+-- data BotEnv ms = BotEnv
+--   { offset            :: TVar Integer
+--   , tMessages         :: TQueue ms
+--   , token             :: Token
+--   , logLevel          :: LogLevel
+--   , producerDelay     :: Int
+--   , consumerDelay     :: Int
+--   , helpMsg           :: Text
+--   , repetitions       :: TVar (Map ChatId Int)
+--   , defaultReps       :: Int
+--   , repsCommandCalled :: TVar (Set ChatId)
+--   , repsQuestion      :: Text
+--   , mainThreadId      :: ThreadId
+--   }
 
 data Command
   = HelpCommand Text
@@ -69,9 +94,9 @@ class (Monad m) => HasOffset m where
   updateOffset :: Integer -> m ()
 
 
-class (Monad m, BotTypes m) => HasMessageQueue m where
-  pullMessage :: m (Maybe (Message m))
-  pushMessage :: Message m -> m ()
+-- class (Monad m, BotTypes m) => HasMessageQueue m where
+--   pullMessage :: m (Maybe (Message m))
+--   pushMessage :: Message m -> m ()
 
 
 class (Monad m) => HasToken m where
