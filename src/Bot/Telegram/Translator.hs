@@ -8,8 +8,9 @@ import           Bot
 import           Bot.Telegram.Types.Msg
 import           Bot.Telegram.Types.Updates
 import           Control.Concurrent            (forkFinally, killThread,
-                                                myThreadId)
-import           Control.Concurrent.STM.TQueue (TQueue, readTQueue, writeTQueue)
+                                                myThreadId, threadDelay)
+import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
+                                                writeTQueue)
 import           Control.Concurrent.STM.TVar   (TVar, modifyTVar', readTVarIO)
 import           Control.Monad                 (forever, void)
 import           Control.Monad.IO.Class        (MonadIO, liftIO)
@@ -44,6 +45,7 @@ data TranslatorEnv = TranslatorEnv
   , defaultReps       :: Int
   , repsCommandCalled :: TVar (Set ChatId)
   , repsQuestion      :: Text
+  , translatorDelay   :: Int
   }
 
 
@@ -55,7 +57,7 @@ instance HasUpdateQueue TranslatorM where
   type Update TranslatorM = Upd
 
   pullUpdate = asks tUpdates
-    >>= liftIO . atomically . readTQueue
+    >>= liftIO . atomically . tryReadTQueue
 
   pushUpdate m = asks tUpdates >>= \q ->
     liftIO $ atomically $ writeTQueue q m
@@ -65,7 +67,7 @@ instance HasMessageQueue TranslatorM where
   type Message TranslatorM = Msg
 
   pullMessage = asks tMessages
-    >>= liftIO . atomically . readTQueue
+    >>= liftIO . atomically . tryReadTQueue
 
   pushMessage m = asks tMessages >>= \q ->
     liftIO $ atomically $ writeTQueue q m
@@ -114,6 +116,10 @@ instance RepetitionsHandler TranslatorM where
         pure msg
 
   handleRepetitions msg = pure msg
+
+
+instance MonadSleep TranslatorM where
+  sleep = liftIO . threadDelay =<< asks translatorDelay
 
 
 receivedMsgToMsg :: ReceivedMsg -> TranslatorM Msg

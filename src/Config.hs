@@ -21,15 +21,15 @@ defaultEnvs = do
   rs <- newTVarIO Map.empty
   rcc <- newTVarIO Set.empty
   let token' = Token "1470862909:AAGZF-lhbKci7azP-NHsxiTCdGJ4flHlTDo"
-  let logLevel' = Info
-  let fetcherDelay' = 1000000
+  let logLevel' = Debug
+  let delay' = 1000000
   let helpMsg' = "Arbitrary help message"
   let repsQ' = "How many times repeat?"
   let drs = 1
   tId <- myThreadId
 
-  let fEnv = FetcherEnv offset' token' logLevel' fetcherDelay' tId uQueue'
-  let tEnv = TranslatorEnv uQueue' mQueue' logLevel' helpMsg' rs drs rcc repsQ'
-  let sEnv = SenderEnv offset' token' logLevel' tId mQueue' rs drs
+  let fEnv = FetcherEnv offset' token' logLevel' delay' tId uQueue'
+  let tEnv = TranslatorEnv uQueue' mQueue' logLevel' helpMsg' rs drs rcc repsQ' delay'
+  let sEnv = SenderEnv offset' token' logLevel' tId mQueue' rs drs delay'
 
   pure (fEnv, tEnv, sEnv)

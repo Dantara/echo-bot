@@ -5,15 +5,15 @@
 module Bot.Telegram where
 
 import           Bot                     (BotPart (..))
-import           Bot.Telegram.Fetcher    (FetcherEnv, runFetcher)
-import           Bot.Telegram.Sender     (SenderEnv, runSender)
-import           Bot.Telegram.Translator (TranslatorEnv, runTranslator)
+import           Bot.Telegram.Fetcher    (FetcherEnv, loopFetcher)
+import           Bot.Telegram.Sender     (SenderEnv, loopSender)
+import           Bot.Telegram.Translator (TranslatorEnv, loopTranslator)
 import           Logic                   (fetcher, sender, translator)
 
 
 runBot :: [BotPart FetcherEnv TranslatorEnv SenderEnv] -> IO ()
 runBot = mapM_ runner
   where
-    runner (Fetcher env)    = runFetcher fetcher env
-    runner (Translator env) = runTranslator translator env
-    runner (Sender env)     = runSender sender env
+    runner (Fetcher env)    = loopFetcher fetcher env
+    runner (Translator env) = loopTranslator translator env
+    runner (Sender env)     = loopSender sender env

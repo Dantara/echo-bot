@@ -11,7 +11,8 @@ import           Bot.Telegram.Types.Updates
 import           Control.Concurrent            (ThreadId, forkFinally,
                                                 killThread, myThreadId,
                                                 threadDelay, throwTo)
-import           Control.Concurrent.STM.TQueue (TQueue, readTQueue, writeTQueue)
+import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
+                                                writeTQueue)
 import           Control.Concurrent.STM.TVar   (TVar, readTVarIO, writeTVar)
 import           Control.Exception             (throwIO)
 import           Control.Monad                 (forever, void)
@@ -71,7 +72,7 @@ instance HasUpdateQueue FetcherM where
   type Update FetcherM = Upd
 
   pullUpdate = asks tUpdates
-    >>= liftIO . atomically . readTQueue
+    >>= liftIO . atomically . tryReadTQueue
 
   pushUpdate m = asks tUpdates >>= \q ->
     liftIO $ atomically $ writeTQueue q m
@@ -99,11 +100,15 @@ instance HasOffset FetcherM where
     liftIO $ atomically $ writeTVar t o
 
 
+instance MonadSleep FetcherM where
+  sleep = liftIO . threadDelay =<< asks fetcherDelay
+
+
 runFetcher :: FetcherM a -> FetcherEnv -> IO a
 runFetcher app = runReaderT (unwrapFetcherM app)
 
 
 loopFetcher :: FetcherM a -> FetcherEnv -> IO ()
 loopFetcher app env = void $ forkFinally
-  (forever $ runFetcher app env >> threadDelay (fetcherDelay env))
+  (forever $ runFetcher app env)
   (either (const $ myThreadId >>= killThread) (const $ pure ()))

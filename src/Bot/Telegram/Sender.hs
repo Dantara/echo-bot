@@ -8,8 +8,10 @@ module Bot.Telegram.Sender where
 import           Bot
 import           Bot.Telegram.Types.Msg        (Msg (..), MsgContent (..))
 import           Control.Concurrent            (ThreadId, forkFinally,
-                                                killThread, myThreadId, throwTo)
-import           Control.Concurrent.STM.TQueue (TQueue, readTQueue, writeTQueue)
+                                                killThread, myThreadId,
+                                                threadDelay, throwTo)
+import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
+                                                writeTQueue)
 import           Control.Concurrent.STM.TVar   (TVar, modifyTVar', readTVarIO)
 import           Control.Exception             (throwIO)
 import           Control.Monad                 (forever, void)
@@ -41,6 +43,7 @@ data SenderEnv = SenderEnv
   , tMessages    :: TQueue Msg
   , repetitions  :: TVar (Map ChatId Int)
   , defaultReps  :: Int
+  , senderDelay  :: Int
   }
 
 
@@ -96,7 +99,7 @@ instance HasMessageQueue SenderM where
   type Message SenderM = Msg
 
   pullMessage = asks tMessages
-    >>= liftIO . atomically . readTQueue
+    >>= liftIO . atomically . tryReadTQueue
 
   pushMessage m = asks tMessages >>= \q ->
     liftIO $ atomically $ writeTQueue q m
@@ -126,6 +129,10 @@ instance MonadHttp SenderM where
     liftIO $ throwIO e
 
   getHttpConfig = pure defaultHttpConfig
+
+
+instance MonadSleep SenderM where
+  sleep = liftIO . threadDelay =<< asks senderDelay
 
 
 runSender :: SenderM a -> SenderEnv -> IO a

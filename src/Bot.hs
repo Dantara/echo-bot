@@ -37,13 +37,13 @@ class (Monad m) => HasOffset m where
 class (Monad m) => HasUpdateQueue m where
   type Update m :: *
   pushUpdate :: Update m -> m ()
-  pullUpdate :: m (Update m)
+  pullUpdate :: m (Maybe (Update m))
 
 
 class (Monad m) => HasMessageQueue m where
   type Message m :: *
   pushMessage :: Message m -> m ()
-  pullMessage :: m (Message m)
+  pullMessage :: m (Maybe (Message m))
 
 
 class (Monad m) => HasRepetitions m where
@@ -54,6 +54,8 @@ class (Monad m) => HasRepetitions m where
 class (HasRepetitions m, Logger m) => RepetitionsHandler m where
   handleRepetitions :: Message m -> m (Message m)
 
+class (Monad m) => MonadSleep m where
+  sleep :: m ()
 
 data Command
   = HelpCommand Text
