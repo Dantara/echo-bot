@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Bot.Telegram.SharedTypes where
+module Bot.Telegram.Types where
 
 import           Bot          (Command (..))
 import           Data.Aeson

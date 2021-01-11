@@ -4,26 +4,30 @@
 module Logic where
 
 import           Bot
-import           Control.Monad
+import           Control.Monad (mapM_, replicateM_)
 import           Logger
 
 
-producer :: (ProducerBot m, Logger m) => m ()
-producer = pullUpdates >>= mapM_ proceedUpdate
+fetcher :: (MonadFetcher m, HasUpdateQueue m, HasOffset m) => m ()
+fetcher = fetchUpdates >>= mapM_ proceedUpdate
   where
     proceedUpdate u = do
-      updateToMessage u
-        >>= handleRepetitions
-        >>= pushMessage
-      updateOffset $ offsetOfUpdate u
+      pushUpdate u
+      offsetOfUpdate u >>= updateOffset
 
 
-consumer :: (ConsumerBot m, Logger m) => m ()
-consumer = do
-  maybeMsg <- pullMessage
-  case maybeMsg of
-    (Just m) -> do
-      rs <- chatIdOfMessage m >>= getRepetitions
-      replicateM_ rs (sendMessage m)
-    Nothing ->
-      logDebug "Consumer gets no updates"
+translator :: (MonadTranslator m,
+               HasUpdateQueue m,
+               HasMessageQueue m,
+               RepetitionsHandler m) => m ()
+translator = pullUpdate
+  >>= updateToMessage
+  >>= handleRepetitions
+  >>= pushMessage
+
+
+sender :: (MonadSender m, HasMessageQueue m, HasRepetitions m) => m ()
+sender = do
+  m <- pullMessage
+  rs <- chatIdOfMessage m >>= getRepetitions
+  replicateM_ rs (sendMessage m)

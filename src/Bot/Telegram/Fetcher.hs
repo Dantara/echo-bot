@@ -7,27 +7,21 @@
 module Bot.Telegram.Fetcher where
 
 import           Bot
-import           Control.Concurrent
+import           Bot.Telegram.Types.Updates
+import           Control.Concurrent            (ThreadId, forkFinally,
+                                                killThread, myThreadId,
+                                                threadDelay, throwTo)
 import           Control.Concurrent.STM.TQueue (TQueue, readTQueue, writeTQueue)
-import           Control.Concurrent.STM.TVar   (TVar, readTVarIO)
+import           Control.Concurrent.STM.TVar   (TVar, readTVarIO, writeTVar)
 import           Control.Exception             (throwIO)
+import           Control.Monad                 (forever, void)
 import           Control.Monad.IO.Class        (MonadIO, liftIO)
-import           Control.Monad.Reader          (MonadReader, ReaderT, asks)
+import           Control.Monad.Reader          (MonadReader, ReaderT, asks,
+                                                runReaderT)
 import           Control.Monad.STM             (atomically)
 import           Data.Aeson
-import           Data.Map.Strict               (Map)
-import qualified Data.Map.Strict               as Map
-import           Data.Set                      (Set)
-import qualified Data.Set                      as Set
-import           Data.Text                     (Text)
-import qualified Data.Text                     as Text
 import           Logger
 import           Network.HTTP.Req
--- import           Text.Read
-import           Bot.Telegram.Fetcher.Updates
-import           Bot.Telegram.SharedTypes      (Contact, Dice, FileInfo,
-                                                Location, Msg (..),
-                                                MsgContent (..), Venue)
 
 
 newtype FetcherM a = FetcherM { unwrapFetcherM :: ReaderT FetcherEnv IO a }
@@ -70,6 +64,8 @@ instance MonadFetcher FetcherM where
 
     pure $ extractUpdates $ responseBody r
 
+  offsetOfUpdate = pure . updateId
+
 
 instance HasUpdateQueue FetcherM where
   type Update FetcherM = Upd
@@ -94,3 +90,20 @@ instance MonadHttp FetcherM where
     liftIO $ throwIO e
 
   getHttpConfig = pure defaultHttpConfig
+
+
+instance HasOffset FetcherM where
+  getOffset = liftIO . readTVarIO =<< asks offset
+
+  updateOffset o = asks offset >>= \t ->
+    liftIO $ atomically $ writeTVar t o
+
+
+runFetcher :: FetcherM a -> FetcherEnv -> IO a
+runFetcher app = runReaderT (unwrapFetcherM app)
+
+
+loopFetcher :: FetcherM a -> FetcherEnv -> IO ()
+loopFetcher app env = void $ forkFinally
+  (forever $ runFetcher app env >> threadDelay (fetcherDelay env))
+  (either (const $ myThreadId >>= killThread) (const $ pure ()))

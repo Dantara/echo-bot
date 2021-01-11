@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Bot.Telegram.Fetcher.Updates where
+module Bot.Telegram.Types.Updates where
 
-import           Bot.Telegram.SharedTypes (Contact, Dice, FileInfo, Location,
-                                           Venue)
+import           Bot.Telegram.Types.Shared (Contact, Dice, FileInfo, Location,
+                                            Venue)
 import           Data.Aeson
-import           Data.Text                (Text)
+import           Data.Text                 (Text)
 
 
 -- * Data types section
