@@ -7,9 +7,9 @@ import           Data.Text  (Text)
 
 
 data LongPollServer = LongPollServer
-  { key    :: Text
-  , server :: Text
-  , ts     :: Integer
+  { key        :: Text
+  , serverAddr :: Text
+  , ts         :: Integer
   }
 
 

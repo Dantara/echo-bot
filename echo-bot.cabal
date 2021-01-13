@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b7d7585bbcaf10384d61c666f3ef07449925e836adfa0f7daae1367f7523ad33
+-- hash: 91c621e1f61eb101c12e38cbda355c6d48655874bebe563eccda7a5bae48963f
 
 name:           echo-bot
 version:        0.1.0.0
@@ -39,6 +39,7 @@ library
       Bot.VK.Fetcher
       Bot.VK.Fetcher.LongPollServer
       Bot.VK.Types.Shared
+      Bot.VK.Types.Updates
       Config
       Helpers
       Logger
