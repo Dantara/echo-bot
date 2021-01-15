@@ -26,17 +26,11 @@ data ReceivedUpd
 
 
 data ReceivedMsg = ReceivedMsg
-  { chatId       :: Integer
-  , receivedText :: Text
-  , attachments  :: [Attachment]
+  { fromId              :: Integer
+  , receivedText        :: Text
+  , receivedAttachments :: [Attachment]
   } deriving (Eq)
 
-
-data Attachment
-  = Document FileInfo
-  | Photo FileInfo
-  | UnknownAttachment
-  deriving (Eq)
 
 
 instance FromJSON Updates where
@@ -60,18 +54,6 @@ instance FromJSON ReceivedMsg where
     <$> m .: "from_id"
     <*> m .: "text"
     <*> m .: "attachments"
-
-
-instance FromJSON Attachment where
-  parseJSON = withObject "Attachment" $ \a -> do
-    type' <- a .: "type"
-    case type' :: Text of
-      "photo" ->
-        Photo <$> (a .: "photo")
-      "doc" ->
-        Document <$> (a .: "doc")
-      _ ->
-        pure UnknownAttachment
 
 
 updatesToUpds :: Updates -> [Upd]
