@@ -9,20 +9,11 @@ import qualified Data.Text           as Text
 
 
 data Msg = Msg
-  { peerId      :: Text
+  { userId      :: Integer
   , randomId    :: Int
   , text        :: Text
   , attachments :: [Attachment]
   }
-
-
-instance ToJSON Msg where
-  toJSON (Msg pi' ri t ats)
-    = object [ "peer_id" .= pi'
-             , "random_id" .= ri
-             , "text" .= t
-             , "attachments" .= serializeAttachments ats
-             ]
 
 
 serializeAttachments :: [Attachment] -> Text

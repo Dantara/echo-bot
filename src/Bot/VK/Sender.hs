@@ -3,10 +3,10 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Bot.Telegram.Sender where
+module Bot.VK.Sender where
 
 import           Bot
-import           Bot.Telegram.Types.Msg        (Msg (..), MsgContent (..))
+import           Bot.VK.Types.Msg
 import           Control.Concurrent            (ThreadId, forkFinally,
                                                 killThread, myThreadId,
                                                 threadDelay, throwTo)
@@ -24,6 +24,10 @@ import qualified Data.Map.Strict               as Map
 import           Data.Text                     (Text)
 import           Logger
 import           Network.HTTP.Req
+
+
+apiVersion :: Text
+apiVersion = "5.126"
 
 
 newtype SenderM a = SenderM { unwrapSenderM :: ReaderT SenderEnv IO a }
@@ -47,51 +51,27 @@ data SenderEnv = SenderEnv
 
 
 instance MonadSender SenderM where
-  sendMessage m = case msgContent m of
-    CommandContent _ ->
-      genericSendMessage m "sendMessage"
-    TextContent _ ->
-      genericSendMessage m "sendMessage"
-    AudioContent _ ->
-      genericSendMessage m "sendAudio"
-    DocumentContent _ _ ->
-      genericSendMessage m "sendDocument"
-    PhotoContent _ _ ->
-      genericSendMessage m "sendPhoto"
-    StickerContent _ ->
-      genericSendMessage m "sendSticker"
-    VideoContent _ _ ->
-      genericSendMessage m "sendVideo"
-    VideoNoteContent _ ->
-      genericSendMessage m "sendVideoNote"
-    VoiceContent _ ->
-      genericSendMessage m "sendVoice"
-    ContactContent _ ->
-      genericSendMessage m "sendContact"
-    DiceContent _ ->
-      genericSendMessage m "sendDice"
-    VenueContent _ ->
-      genericSendMessage m "sendVenue"
-    LocationContent _ ->
-      genericSendMessage m "sendLocation"
-    UnsupportedContent _ ->
-      genericSendMessage m "forwardMessage"
+  sendMessage msg = do
+    token' <- asks $ extractToken . token
 
-  chatIdOfMessage = pure . chatId
+    let params = [ "access_token" =: token'
+                 , "user_id" =: userId msg
+                 , "random_id" =: randomId msg
+                 , "message" =: text msg
+                 , "attachments" =: serializeAttachments (attachments msg)
+                 , "v" =: apiVersion
+                 ]
 
-
-genericSendMessage :: Msg -> Text -> SenderM ()
-genericSendMessage m u = do
-    token' <- asks $ ("bot" <>) . extractToken . token
-
-    logDebug "Sending Telegram response"
+    logDebug "Sending message to VK"
 
     void $ req
-             POST
-             (https "api.telegram.org" /: token' /: u)
-             (ReqBodyJson m)
-             ignoreResponse
-             mempty
+           GET
+           (https "api.vk.com" /: "method" /: "messages.send")
+           NoReqBody
+           ignoreResponse
+           (mconcat params)
+
+  chatIdOfMessage = pure . userId
 
 
 instance HasMessageQueue SenderM where
@@ -132,13 +112,3 @@ instance MonadHttp SenderM where
 
 instance MonadSleep SenderM where
   sleep = liftIO . threadDelay =<< asks senderDelay
-
-
-runSender :: SenderM a -> SenderEnv -> IO a
-runSender app = runReaderT (unwrapSenderM app)
-
-
-loopSender :: SenderM a -> SenderEnv -> IO ()
-loopSender app env = void $ forkFinally
-  (forever $ runSender app env)
-  (either (const $ myThreadId >>= killThread) (const $ pure ()))
