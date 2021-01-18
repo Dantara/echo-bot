@@ -58,8 +58,8 @@ class (Monad m) => MonadSleep m where
   sleep :: m ()
 
 data Command
-  = HelpCommand Text
-  | RepeatCommand Text
+  = HelpCommand
+  | RepeatCommand
 
 
 type ChatId = Integer

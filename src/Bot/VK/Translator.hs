@@ -2,11 +2,11 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Bot.Telegram.Translator where
+module Bot.VK.Translator where
 
 import           Bot
-import           Bot.Telegram.Types.Msg
-import           Bot.Telegram.Types.Updates
+import           Bot.VK.Types.Msg
+import           Bot.VK.Types.Updates
 import           Control.Concurrent            (forkFinally, killThread,
                                                 myThreadId, threadDelay)
 import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
@@ -24,6 +24,8 @@ import qualified Data.Set                      as Set
 import           Data.Text                     (Text)
 import qualified Data.Text                     as Text
 import           Logger
+import           System.Random.TF
+import           System.Random.TF.Gen
 import           Text.Read                     (readMaybe)
 
 
@@ -50,7 +52,26 @@ data TranslatorEnv = TranslatorEnv
 
 
 instance MonadTranslator TranslatorM where
-  updateToMessage = receivedMsgToMsg . message
+  updateToMessage = receivedMsgToMsg . receivedMessage
+    where
+      receivedMsgToMsg (ReceivedMsg fi "/help" []) = do
+        ri <- nextRandomNumber
+        hm <- asks helpMsg
+        pure $ Msg fi ri hm [] (Just HelpCommand)
+
+      receivedMsgToMsg (ReceivedMsg fi "/repeat" []) = do
+        ri <- nextRandomNumber
+        rs <- getRepetitions fi
+        let firstLine = "Current repetitions amount is " <>
+                        Text.pack (show rs) <> "\n"
+        q <- asks repsQuestion
+        pure $ Msg fi ri (firstLine <> q) [] (Just HelpCommand)
+
+      receivedMsgToMsg (ReceivedMsg fi t as) = do
+        ri <- nextRandomNumber
+        pure $ Msg fi ri t as Nothing
+
+      nextRandomNumber = fromIntegral . fst . next <$> liftIO newTFGen
 
 
 instance HasUpdateQueue TranslatorM where
@@ -90,13 +111,13 @@ instance HasRepetitions TranslatorM where
 
 
 instance RepetitionsHandler TranslatorM where
-  handleRepetitions msg@(Msg ci (CommandContent RepeatCommand _)) = do
+  handleRepetitions msg@(Msg ci _ _ _ (Just RepeatCommand)) = do
     rs <- asks repsCommandCalled
     liftIO $ atomically $ modifyTVar' rs (Set.insert ci)
     logInfo "User wants to update repetitions amount"
     pure msg
 
-  handleRepetitions msg@(Msg ci (TextContent t)) = do
+  handleRepetitions msg@(Msg ci ri t _ _) = do
     trs <- asks repsCommandCalled
     rs <- liftIO $ readTVarIO trs
 
@@ -108,76 +129,14 @@ instance RepetitionsHandler TranslatorM where
           logInfo "User repetitions was updated"
         else
           logWarning "User supplied wrong number of repetitions"
-        pure $ Msg ci (TextContent "Repetitions amount was updated!")
+        pure $ Msg ci ri "Repetitions amount was updated!" [] Nothing
       (True, Nothing) -> do
           logWarning "User supplied malformed number of repetitions"
           pure msg
       (False, _) ->
         pure msg
 
-  handleRepetitions msg = pure msg
-
 
 instance MonadSleep TranslatorM where
   sleep = liftIO . threadDelay =<< asks translatorDelay
 
-
-receivedMsgToMsg :: ReceivedMsg -> TranslatorM Msg
-receivedMsgToMsg (ReceivedMsg ci _ (Just "/help") _ _ _ _ _ _ _ _ _ _ _ _)
-  = asks helpMsg >>= \h -> pure $ Msg ci (CommandContent HelpCommand h)
-
-receivedMsgToMsg (ReceivedMsg ci _ (Just "/repeat") _ _ _ _ _ _ _ _ _ _ _ _) = do
-  q <- asks repsQuestion
-  rs <- getRepetitions ci
-  let firstLine = "Current repetitions amount is " <>
-                  Text.pack (show rs) <> "\n"
-  pure $ Msg ci (CommandContent RepeatCommand (firstLine <> q))
-
-receivedMsgToMsg (ReceivedMsg ci _ (Just t) _ _ _ _ _ _ _ _ _ _ _ _)
-  = pure $ Msg ci (TextContent t)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ (Just f) _ _ _ _ _ _ _ _ _ _ _)
-  = pure $ Msg ci (AudioContent f)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ _ (Just f) _ _ _ _ _ c _ _ _ _)
-  = pure $ Msg ci (DocumentContent f c)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ (Just fs) _ _ _ _ c _ _ _ _)
-  = pure $ Msg ci (PhotoContent (last fs) c)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ (Just f) _ _ _ _ _ _ _ _)
-  = pure $ Msg ci (StickerContent f)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ (Just f) _ _ c _ _ _ _)
-  = pure $ Msg ci (VideoContent f c)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ (Just f) _ _ _ _ _ _)
-  = pure $ Msg ci (VideoNoteContent f)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ (Just f) _ _ _ _ _)
-  = pure $ Msg ci (VoiceContent f)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ (Just c) _ _ _)
-  = pure $ Msg ci (ContactContent c)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ (Just d) _ _)
-  = pure $ Msg ci (DiceContent d)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ _ (Just v) _)
-  = pure $ Msg ci (VenueContent v)
-
-receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ _ _ (Just l))
-  = pure $ Msg ci (LocationContent l)
-
-receivedMsgToMsg (ReceivedMsg ci i _ _ _ _ _ _ _ _ _ _ _ _ _)
-  = pure $ Msg ci (UnsupportedContent i)
-
-
-runTranslator :: TranslatorM a -> TranslatorEnv -> IO a
-runTranslator app = runReaderT (unwrapTranslatorM app)
-
-
-loopTranslator :: TranslatorM a -> TranslatorEnv -> IO ()
-loopTranslator app env = void $ forkFinally
-  (forever $ runTranslator app env)
-  (either (const $ myThreadId >>= killThread) (const $ pure ()))

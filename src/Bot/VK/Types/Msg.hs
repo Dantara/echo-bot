@@ -2,8 +2,8 @@
 
 module Bot.VK.Types.Msg where
 
+import           Bot
 import           Bot.VK.Types.Shared
-import           Data.Aeson
 import           Data.Text           (Text)
 import qualified Data.Text           as Text
 
@@ -13,6 +13,7 @@ data Msg = Msg
   , randomId    :: Int
   , text        :: Text
   , attachments :: [Attachment]
+  , command     :: Maybe Command
   }
 
 

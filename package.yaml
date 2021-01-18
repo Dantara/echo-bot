@@ -29,6 +29,7 @@ dependencies:
 - bytestring
 - mtl
 - transformers
+- tf-random
 
 library:
   source-dirs: src

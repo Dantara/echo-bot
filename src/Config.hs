@@ -30,6 +30,6 @@ defaultEnvs = do
 
   let fEnv = FetcherEnv offset' token' logLevel' delay' tId uQueue'
   let tEnv = TranslatorEnv uQueue' mQueue' logLevel' helpMsg' rs drs rcc repsQ' delay'
-  let sEnv = SenderEnv offset' token' logLevel' tId mQueue' rs drs delay'
+  let sEnv = SenderEnv token' logLevel' tId mQueue' rs drs delay'
 
   pure (fEnv, tEnv, sEnv)

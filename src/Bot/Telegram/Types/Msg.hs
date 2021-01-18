@@ -15,7 +15,7 @@ data Msg = Msg
 
 
 data MsgContent
-  = CommandContent Command
+  = CommandContent Command Text
   | TextContent Text
   | AudioContent FileInfo
   | DocumentContent FileInfo (Maybe Text)
@@ -33,10 +33,10 @@ data MsgContent
 
 -- | ToJSON Serialization instance for Msg data type
 instance ToJSON Msg where
-  toJSON (Msg ci (CommandContent (HelpCommand t)))
+  toJSON (Msg ci (CommandContent HelpCommand t))
     = object ["chat_id" .= ci, "text" .= t]
 
-  toJSON (Msg ci (CommandContent (RepeatCommand t)))
+  toJSON (Msg ci (CommandContent RepeatCommand t))
     = object [ "chat_id" .= ci
              , "text" .= t
              , "reply_markup" .= object

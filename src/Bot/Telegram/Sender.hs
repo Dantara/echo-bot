@@ -48,7 +48,7 @@ data SenderEnv = SenderEnv
 
 instance MonadSender SenderM where
   sendMessage m = case msgContent m of
-    CommandContent _ ->
+    CommandContent _ _ ->
       genericSendMessage m "sendMessage"
     TextContent _ ->
       genericSendMessage m "sendMessage"
