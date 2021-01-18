@@ -140,3 +140,12 @@ instance RepetitionsHandler TranslatorM where
 instance MonadSleep TranslatorM where
   sleep = liftIO . threadDelay =<< asks translatorDelay
 
+
+runTranslator :: TranslatorM a -> TranslatorEnv -> IO a
+runTranslator app = runReaderT (unwrapTranslatorM app)
+
+
+loopTranslator :: TranslatorM a -> TranslatorEnv -> IO ()
+loopTranslator app env = void $ forkFinally
+  (forever $ runTranslator app env)
+  (either (const $ myThreadId >>= killThread) (const $ pure ()))
