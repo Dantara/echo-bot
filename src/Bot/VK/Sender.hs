@@ -77,11 +77,9 @@ instance MonadSender SenderM where
 instance HasMessageQueue SenderM where
   type Message SenderM = Msg
 
-  pullMessage = asks tMessages
-    >>= liftIO . atomically . tryReadTQueue
 
-  pushMessage m = asks tMessages >>= \q ->
-    liftIO $ atomically $ writeTQueue q m
+instance HasMsgQueueSTM SenderM where
+  getMsgQueue = asks tMessages
 
 
 instance HasRepetitions SenderM where
@@ -96,7 +94,6 @@ instance HasRepetitions SenderM where
 
 
 instance Logger SenderM where
-  log = logSTD
   getLogLevel = asks logLevel
 
 

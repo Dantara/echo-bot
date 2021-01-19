@@ -56,25 +56,20 @@ instance MonadTranslator TranslatorM where
 instance HasUpdateQueue TranslatorM where
   type Update TranslatorM = Upd
 
-  pullUpdate = asks tUpdates
-    >>= liftIO . atomically . tryReadTQueue
-
-  pushUpdate m = asks tUpdates >>= \q ->
-    liftIO $ atomically $ writeTQueue q m
-
 
 instance HasMessageQueue TranslatorM where
   type Message TranslatorM = Msg
 
-  pullMessage = asks tMessages
-    >>= liftIO . atomically . tryReadTQueue
 
-  pushMessage m = asks tMessages >>= \q ->
-    liftIO $ atomically $ writeTQueue q m
+instance HasUpdQueueSTM TranslatorM where
+  getUpdQueue = asks tUpdates
+
+
+instance HasMsgQueueSTM TranslatorM where
+  getMsgQueue = asks tMessages
 
 
 instance Logger TranslatorM where
-  log = logSTD
   getLogLevel = asks logLevel
 
 

@@ -71,15 +71,12 @@ instance MonadFetcher FetcherM where
 instance HasUpdateQueue FetcherM where
   type Update FetcherM = Upd
 
-  pullUpdate = asks tUpdates
-    >>= liftIO . atomically . tryReadTQueue
 
-  pushUpdate m = asks tUpdates >>= \q ->
-    liftIO $ atomically $ writeTQueue q m
+instance HasUpdQueueSTM FetcherM where
+  getUpdQueue = asks tUpdates
 
 
 instance Logger FetcherM where
-  log = logSTD
   getLogLevel = asks logLevel
 
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE EmptyDataDecls    #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -11,10 +11,6 @@ import qualified Data.Text.IO         as T
 import           Prelude              hiding (log)
 
 
-data STDLogger -- ^ Logger for standart I/O
-data IdentityLogger -- ^ Mocking (disabling) logging
-
-
 data LogLevel
   = Debug    -- ^ Debug messages
   | Info     -- ^ Notable information that requires no immediate action.
@@ -24,8 +20,11 @@ data LogLevel
 
 
 class Logger m where
-  log :: LogLevel -> Text -> m ()
   getLogLevel :: m LogLevel
+
+  log :: LogLevel -> Text -> m ()
+  default log :: (MonadIO m) => LogLevel -> Text -> m ()
+  log = logSTD
 
 
 -- | Helpers methods for logging
