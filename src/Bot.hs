@@ -1,11 +1,16 @@
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
 
 module Bot where
 
+import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
+                                                writeTQueue)
+import           Control.Monad.IO.Class        (MonadIO, liftIO)
 import           Control.Monad.Reader
-import           Data.Text            (Text)
+import           Control.Monad.STM             (atomically)
+import           Data.Text                     (Text)
 import           Logger
 
 
@@ -34,16 +39,40 @@ class (Monad m) => HasOffset m where
   updateOffset :: Integer -> m ()
 
 
+class (MonadIO m) => HasUpdQueueSTM m where
+  getUpdQueue :: m (TQueue (Update m))
+
+
 class (Monad m) => HasUpdateQueue m where
   type Update m :: *
-  pushUpdate :: Update m -> m ()
+
   pullUpdate :: m (Maybe (Update m))
+  default pullUpdate :: (HasUpdQueueSTM m) => m (Maybe (Update m))
+  pullUpdate = getUpdQueue
+    >>= liftIO . atomically . tryReadTQueue
+
+  pushUpdate :: Update m -> m ()
+  default pushUpdate :: (HasUpdQueueSTM m) => Update m -> m ()
+  pushUpdate msg = getUpdQueue >>= \q ->
+    liftIO $ atomically $ writeTQueue q msg
+
+
+class (MonadIO m) => HasMsgQueueSTM m where
+  getMsgQueue :: m (TQueue (Message m))
 
 
 class (Monad m) => HasMessageQueue m where
   type Message m :: *
-  pushMessage :: Message m -> m ()
+
   pullMessage :: m (Maybe (Message m))
+  default pullMessage :: (HasMsgQueueSTM m) => m (Maybe (Message m))
+  pullMessage = getMsgQueue
+    >>= liftIO . atomically . tryReadTQueue
+
+  pushMessage :: Message m -> m ()
+  default pushMessage :: (HasMsgQueueSTM m) => Message m -> m ()
+  pushMessage msg = getMsgQueue >>= \q ->
+    liftIO $ atomically $ writeTQueue q msg
 
 
 class (Monad m) => HasRepetitions m where
@@ -54,8 +83,10 @@ class (Monad m) => HasRepetitions m where
 class (HasRepetitions m, Logger m) => RepetitionsHandler m where
   handleRepetitions :: Message m -> m (Message m)
 
+
 class (Monad m) => MonadSleep m where
   sleep :: m ()
+
 
 data Command
   = HelpCommand
