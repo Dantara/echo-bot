@@ -7,9 +7,12 @@ module Bot where
 
 import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
                                                 writeTQueue)
+import           Control.Concurrent.STM.TVar   (TVar, modifyTVar', readTVarIO)
 import           Control.Monad.IO.Class        (MonadIO, liftIO)
 import           Control.Monad.Reader
 import           Control.Monad.STM             (atomically)
+import           Data.Map.Strict               (Map)
+import qualified Data.Map.Strict               as Map
 import           Data.Text                     (Text)
 import           Logger
 
@@ -75,9 +78,25 @@ class (Monad m) => HasMessageQueue m where
     liftIO $ atomically $ writeTQueue q msg
 
 
+class (MonadIO m) => HasMapRepsSTM m where
+  getTVarMapReps :: m (TVar (Map ChatId Int))
+
+
 class (Monad m) => HasRepetitions m where
+  getDefaultRepetitions :: m Int
+
   getRepetitions :: ChatId -> m Int
+  default getRepetitions :: HasMapRepsSTM m => ChatId -> m Int
+  getRepetitions ci = do
+    rs <- liftIO . readTVarIO =<< getTVarMapReps
+    dr <- getDefaultRepetitions
+    pure $ Map.findWithDefault dr ci rs
+
   updateRepetitions :: Int -> ChatId -> m ()
+  default updateRepetitions :: HasMapRepsSTM m => Int -> ChatId -> m ()
+  updateRepetitions i ci = do
+    rs <- getTVarMapReps
+    liftIO $ atomically $ modifyTVar' rs (Map.insert ci i)
 
 
 class (HasRepetitions m, Logger m) => RepetitionsHandler m where

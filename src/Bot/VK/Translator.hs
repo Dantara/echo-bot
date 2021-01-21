@@ -74,37 +74,6 @@ instance MonadTranslator TranslatorM where
       nextRandomNumber = fromIntegral . fst . next <$> liftIO newTFGen
 
 
-instance HasUpdateQueue TranslatorM where
-  type Update TranslatorM = Upd
-
-
-instance HasMessageQueue TranslatorM where
-  type Message TranslatorM = Msg
-
-
-instance HasUpdQueueSTM TranslatorM where
-  getUpdQueue = asks tUpdates
-
-
-instance HasMsgQueueSTM TranslatorM where
-  getMsgQueue = asks tMessages
-
-
-instance Logger TranslatorM where
-  getLogLevel = asks logLevel
-
-
-instance HasRepetitions TranslatorM where
-  getRepetitions ci = do
-    rs <- liftIO . readTVarIO =<< asks repetitions
-    dr <- asks defaultReps
-    pure $ Map.findWithDefault dr ci rs
-
-  updateRepetitions i ci = do
-    rs <- asks repetitions
-    liftIO $ atomically $ modifyTVar' rs (Map.insert ci i)
-
-
 instance RepetitionsHandler TranslatorM where
   handleRepetitions msg@(Msg ci _ _ _ (Just RepeatCommand)) = do
     rs <- asks repsCommandCalled
@@ -130,6 +99,34 @@ instance RepetitionsHandler TranslatorM where
           pure msg
       (False, _) ->
         pure msg
+
+
+instance HasUpdateQueue TranslatorM where
+  type Update TranslatorM = Upd
+
+
+instance HasMessageQueue TranslatorM where
+  type Message TranslatorM = Msg
+
+
+instance HasUpdQueueSTM TranslatorM where
+  getUpdQueue = asks tUpdates
+
+
+instance HasMsgQueueSTM TranslatorM where
+  getMsgQueue = asks tMessages
+
+
+instance Logger TranslatorM where
+  getLogLevel = asks logLevel
+
+
+instance HasRepetitions TranslatorM where
+  getDefaultRepetitions = asks defaultReps
+
+
+instance HasMapRepsSTM TranslatorM where
+  getTVarMapReps = asks repetitions
 
 
 instance MonadSleep TranslatorM where

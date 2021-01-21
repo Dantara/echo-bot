@@ -103,14 +103,11 @@ instance HasMsgQueueSTM SenderM where
 
 
 instance HasRepetitions SenderM where
-  getRepetitions ci = do
-    rs <- liftIO . readTVarIO =<< asks repetitions
-    dr <- asks defaultReps
-    pure $ Map.findWithDefault dr ci rs
+  getDefaultRepetitions = asks defaultReps
 
-  updateRepetitions i ci = do
-    rs <- asks repetitions
-    liftIO $ atomically $ modifyTVar' rs (Map.insert ci i)
+
+instance HasMapRepsSTM SenderM where
+  getTVarMapReps = asks repetitions
 
 
 instance Logger SenderM where

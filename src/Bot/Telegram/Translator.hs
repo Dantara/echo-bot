@@ -74,14 +74,15 @@ instance Logger TranslatorM where
 
 
 instance HasRepetitions TranslatorM where
-  getRepetitions ci = do
-    rs <- liftIO . readTVarIO =<< asks repetitions
-    dr <- asks defaultReps
-    pure $ Map.findWithDefault dr ci rs
+  getDefaultRepetitions = asks defaultReps
 
-  updateRepetitions i ci = do
-    rs <- asks repetitions
-    liftIO $ atomically $ modifyTVar' rs (Map.insert ci i)
+
+instance HasMapRepsSTM TranslatorM where
+  getTVarMapReps = asks repetitions
+
+
+instance MonadSleep TranslatorM where
+  sleep = liftIO . threadDelay =<< asks translatorDelay
 
 
 instance RepetitionsHandler TranslatorM where
@@ -111,10 +112,6 @@ instance RepetitionsHandler TranslatorM where
         pure msg
 
   handleRepetitions msg = pure msg
-
-
-instance MonadSleep TranslatorM where
-  sleep = liftIO . threadDelay =<< asks translatorDelay
 
 
 receivedMsgToMsg :: ReceivedMsg -> TranslatorM Msg
