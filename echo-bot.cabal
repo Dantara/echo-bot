@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 74cbf490bd7503eba5fb2c5dc6dc75bddad9206d7655bed4eb784e71a7cfe750
+-- hash: 73aa4f2985cbd79f81fcaa659bbe18772e79a2fc6daf2ddaac4bf7f7bd4eee66
 
 name:           echo-bot
 version:        0.1.0.0
@@ -32,6 +32,7 @@ library
       Bot.Telegram.Fetcher
       Bot.Telegram.Sender
       Bot.Telegram.Translator
+      Bot.Telegram.Types.Config
       Bot.Telegram.Types.Msg
       Bot.Telegram.Types.Shared
       Bot.Telegram.Types.Updates
@@ -40,6 +41,7 @@ library
       Bot.VK.Fetcher.LongPollServer
       Bot.VK.Sender
       Bot.VK.Translator
+      Bot.VK.Types.Config
       Bot.VK.Types.Msg
       Bot.VK.Types.Shared
       Bot.VK.Types.Updates

@@ -1,4 +1,5 @@
 {-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeFamilies               #-}
@@ -26,13 +27,6 @@ import           Logger
 import           Network.HTTP.Req
 
 
-apiVersion :: Text
-apiVersion = "5.126"
-
-fetcherTimeout :: Int
-fetcherTimeout = 25
-
-
 newtype FetcherM a = FetcherM { unwrapFetcherM :: ReaderT FetcherEnv IO a }
   deriving newtype ( Functor
                    , Applicative
@@ -47,9 +41,11 @@ data FetcherEnv = FetcherEnv
   , groupId        :: Text
   , logLevel       :: LogLevel
   , fetcherDelay   :: Int
+  , fetcherTimeout :: Int
   , mainThreadId   :: ThreadId
   , longPollServer :: TVar (Maybe LongPollServer)
   , tUpdates       :: TQueue Upd
+  , apiVersion     :: Text
   }
 
 
@@ -63,21 +59,23 @@ instance MonadFetcher FetcherM where
       maybeLps
     where
        proceedRequest lps = do
-        let params = [ "key" =: key lps
-                     , "ts" =: ts lps
-                     , "wait" =: fetcherTimeout
-                     ]
+         timeout <- asks fetcherTimeout
 
-        logDebug "Fetching updates from VK"
+         let params = [ "key" =: key lps
+                      , "ts" =: ts lps
+                      , "wait" =: timeout
+                      ]
 
-        r <- req
+         logDebug "Fetching updates from VK"
+
+         r <- req
                 GET
                 (https $ serverAddr lps)
                 NoReqBody
                 jsonResponse
                 (mconcat params)
 
-        pure $ updatesToUpds $ responseBody r
+         pure $ updatesToUpds $ responseBody r
 
   offsetOfUpdate = pure . updateId
 
@@ -129,10 +127,11 @@ updateLongPollServer :: FetcherM LongPollServer
 updateLongPollServer = do
   token' <- asks $ extractToken . token
   groupId' <- asks groupId
+  apiV <- asks apiVersion
 
   let params = [ "groupId" =: groupId'
                , "access_token" =: token'
-               , "v" =: apiVersion
+               , "v" =: apiV
                ]
 
   logDebug "Getting LongPoll server for VK"

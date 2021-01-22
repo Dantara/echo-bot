@@ -26,10 +26,6 @@ import           Logger
 import           Network.HTTP.Req
 
 
-apiVersion :: Text
-apiVersion = "5.126"
-
-
 newtype SenderM a = SenderM { unwrapSenderM :: ReaderT SenderEnv IO a }
   deriving newtype ( Functor
                    , Applicative
@@ -47,19 +43,21 @@ data SenderEnv = SenderEnv
   , repetitions  :: TVar (Map ChatId Int)
   , defaultReps  :: Int
   , senderDelay  :: Int
+  , apiVersion   :: Text
   }
 
 
 instance MonadSender SenderM where
   sendMessage msg = do
     token' <- asks $ extractToken . token
+    apiV <- asks apiVersion
 
     let params = [ "access_token" =: token'
                  , "user_id" =: userId msg
                  , "random_id" =: randomId msg
                  , "message" =: text msg
                  , "attachments" =: serializeAttachments (attachments msg)
-                 , "v" =: apiVersion
+                 , "v" =: apiV
                  ]
 
     logDebug "Sending message to VK"
