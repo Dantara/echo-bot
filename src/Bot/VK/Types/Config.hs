@@ -23,16 +23,19 @@ apiVersion = "5.126"
 
 
 data VKConfig = VKConfig
-  { accessToken     :: Text
-  , groupId         :: Text
-  , fetcherTimeout  :: Int
-  , helpMessage     :: Text
-  , defaultReps     :: Int
-  , repsQuestion    :: Text
-  , logLevel        :: Text
-  , fetcherDelay    :: Int
-  , translatorDelay :: Int
-  , senderDelay     :: Int
+  { accessToken       :: Text
+  , groupId           :: Text
+  , fetcherTimeout    :: Int
+  , helpMessage       :: Text
+  , defaultReps       :: Int
+  , repsQuestion      :: Text
+  , logLevel          :: Text
+  , fetcherDelay      :: Int
+  , translatorDelay   :: Int
+  , senderDelay       :: Int
+  , fetchersAmount    :: Int
+  , translatorsAmount :: Int
+  , sendersAmount     :: Int
   }
 
 
@@ -48,10 +51,13 @@ instance FromJSON VKConfig where
     <*> c .: "fetcher_delay"
     <*> c .: "translator_delay"
     <*> c .: "sender_delay"
+    <*> c .: "fetchers_amount"
+    <*> c .: "translators_amount"
+    <*> c .: "senders_amount"
 
 
 configToEnvs :: VKConfig -> IO (FetcherEnv, TranslatorEnv, SenderEnv)
-configToEnvs (VKConfig at gi ft hm dr rq ll fd td sd) = do
+configToEnvs (VKConfig at gi ft hm dr rq ll fd td sd _ _ _) = do
   uQueue <- newTQueueIO
   mQueue <- newTQueueIO
   repsAmount <- newTVarIO Map.empty

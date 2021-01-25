@@ -19,14 +19,17 @@ import           Logger
 
 
 data TelegramConfig = TelegramConfig
-  { token           :: Text
-  , helpMessage     :: Text
-  , defaultReps     :: Int
-  , repsQuestion    :: Text
-  , logLevel        :: Text
-  , fetcherDelay    :: Int
-  , translatorDelay :: Int
-  , senderDelay     :: Int
+  { token             :: Text
+  , helpMessage       :: Text
+  , defaultReps       :: Int
+  , repsQuestion      :: Text
+  , logLevel          :: Text
+  , fetcherDelay      :: Int
+  , translatorDelay   :: Int
+  , senderDelay       :: Int
+  , fetchersAmount    :: Int
+  , translatorsAmount :: Int
+  , sendersAmount     :: Int
   }
 
 
@@ -40,10 +43,13 @@ instance FromJSON TelegramConfig where
     <*> c .: "fetcher_delay"
     <*> c .: "translator_delay"
     <*> c .: "sender_delay"
+    <*> c .: "fetchers_amount"
+    <*> c .: "translators_amount"
+    <*> c .: "senders_amount"
 
 
 configToEnvs :: TelegramConfig -> IO (FetcherEnv, TranslatorEnv, SenderEnv)
-configToEnvs (TelegramConfig t hm dr rq ll fd td sd) = do
+configToEnvs (TelegramConfig t hm dr rq ll fd td sd _ _ _) = do
   offset <- newTVarIO 0
   uQueue <- newTQueueIO
   mQueue <- newTQueueIO

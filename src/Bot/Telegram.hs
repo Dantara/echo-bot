@@ -4,16 +4,17 @@
 
 module Bot.Telegram where
 
-import           Bot                     (BotPart (..))
-import           Bot.Telegram.Fetcher    (FetcherEnv, loopFetcher)
-import           Bot.Telegram.Sender     (SenderEnv, loopSender)
-import           Bot.Telegram.Translator (TranslatorEnv, loopTranslator)
-import           Logic                   (fetcher, sender, translator)
+import           Bot.Telegram.Fetcher      (loopFetcher)
+import           Bot.Telegram.Sender       (loopSender)
+import           Bot.Telegram.Translator   (loopTranslator)
+import           Bot.Telegram.Types.Config (TelegramConfig (..), configToEnvs)
+import           Control.Monad             (replicateM_)
+import           Logic                     (fetcher, sender, translator)
 
 
-runBot :: [BotPart FetcherEnv TranslatorEnv SenderEnv] -> IO ()
-runBot = mapM_ runner
-  where
-    runner (Fetcher env)    = loopFetcher fetcher env
-    runner (Translator env) = loopTranslator translator env
-    runner (Sender env)     = loopSender sender env
+runBot :: TelegramConfig -> IO ()
+runBot cfg = do
+  (fEnv, tEnv, sEnv) <- configToEnvs cfg
+  replicateM_ (fetchersAmount cfg) (loopFetcher fetcher fEnv)
+  replicateM_ (translatorsAmount cfg) (loopTranslator translator tEnv)
+  replicateM_ (sendersAmount cfg) (loopSender sender sEnv)
