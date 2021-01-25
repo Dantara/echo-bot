@@ -22,6 +22,7 @@ import           Control.Monad.STM             (atomically)
 import           Data.Map.Strict               (Map)
 import qualified Data.Map.Strict               as Map
 import           Data.Text                     (Text)
+import qualified Data.Text                     as Text
 import           Logger
 import           Network.HTTP.Req
 
@@ -55,18 +56,15 @@ instance MonadSender SenderM where
     let params = [ "access_token" =: token'
                  , "user_id" =: userId msg
                  , "random_id" =: randomId msg
-                 , "message" =: text msg
-                 , "attachments" =: serializeAttachments (attachments msg)
+                 , "attachment" =: serializeAttachments (attachments msg)
                  , "v" =: apiV
-                 ]
-
-    logDebug "Sending message to VK"
+                 ] <> ["message" =: text msg | not $ Text.null $ text msg]
 
     void $ req
            GET
            (https "api.vk.com" /: "method" /: "messages.send")
            NoReqBody
-           ignoreResponse
+           bsResponse
            (mconcat params)
 
   chatIdOfMessage = pure . userId
@@ -94,7 +92,7 @@ instance Logger SenderM where
 
 instance MonadHttp SenderM where
   handleHttpException e = do
-    logError "Error occured while sending message:"
+    logError "Error occured while sending VK message:"
     tId <- asks mainThreadId
     liftIO $ throwTo tId e
     liftIO $ throwIO e

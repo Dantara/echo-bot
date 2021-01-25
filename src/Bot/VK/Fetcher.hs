@@ -23,6 +23,7 @@ import           Control.Monad.Reader          (MonadReader, ReaderT, asks,
 import           Control.Monad.STM             (atomically)
 import           Data.Functor                  ((<&>))
 import           Data.Text                     (Text)
+import           Debug.Trace
 import           Logger
 import           Network.HTTP.Req
 
@@ -61,7 +62,8 @@ instance MonadFetcher FetcherM where
        proceedRequest lps = do
          timeout <- asks fetcherTimeout
 
-         let params = [ "key" =: key lps
+         let params = [ "act" =: ("a_check" :: Text)
+                      , "key" =: key lps
                       , "ts" =: ts lps
                       , "wait" =: timeout
                       ]
@@ -70,7 +72,7 @@ instance MonadFetcher FetcherM where
 
          r <- req
                 GET
-                (https $ serverAddr lps)
+                (serverAddr lps)
                 NoReqBody
                 jsonResponse
                 (mconcat params)
@@ -94,7 +96,7 @@ instance Logger FetcherM where
 
 instance MonadHttp FetcherM where
   handleHttpException e = do
-    logError "Error occured while fetching updates:"
+    logError "Error occured while fetching VK updates:"
     tId <- asks mainThreadId
     liftIO $ throwTo tId e
     liftIO $ throwIO e
@@ -120,7 +122,7 @@ instance HasOffset FetcherM where
         tLPS <- asks longPollServer
         liftIO
           $ atomically
-          $ writeTVar tLPS (Just lps { ts = o + 1 })
+          $ writeTVar tLPS (Just lps { ts = o })
 
 
 updateLongPollServer :: FetcherM LongPollServer
@@ -129,7 +131,7 @@ updateLongPollServer = do
   groupId' <- asks groupId
   apiV <- asks apiVersion
 
-  let params = [ "groupId" =: groupId'
+  let params = [ "group_id" =: groupId'
                , "access_token" =: token'
                , "v" =: apiV
                ]

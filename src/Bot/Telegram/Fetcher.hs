@@ -82,7 +82,7 @@ instance Logger FetcherM where
 
 instance MonadHttp FetcherM where
   handleHttpException e = do
-    logError "Error occured while fetching updates:"
+    logError "Error occured while fetching Telegram updates:"
     tId <- asks mainThreadId
     liftIO $ throwTo tId e
     liftIO $ throwIO e

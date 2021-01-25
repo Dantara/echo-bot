@@ -57,6 +57,7 @@ instance MonadTranslator TranslatorM where
       receivedMsgToMsg (ReceivedMsg fi "/help" []) = do
         ri <- nextRandomNumber
         hm <- asks helpMsg
+        logDebug "VK help command was translated"
         pure $ Msg fi ri hm [] (Just HelpCommand)
 
       receivedMsgToMsg (ReceivedMsg fi "/repeat" []) = do
@@ -65,10 +66,12 @@ instance MonadTranslator TranslatorM where
         let firstLine = "Current repetitions amount is " <>
                         Text.pack (show rs) <> "\n"
         q <- asks repsQuestion
-        pure $ Msg fi ri (firstLine <> q) [] (Just HelpCommand)
+        logDebug "VK repeat command was translated"
+        pure $ Msg fi ri (firstLine <> q) [] (Just RepeatCommand)
 
       receivedMsgToMsg (ReceivedMsg fi t as) = do
         ri <- nextRandomNumber
+        logDebug "VK update was translated"
         pure $ Msg fi ri t as Nothing
 
       nextRandomNumber = fromIntegral . fst . next <$> liftIO newTFGen

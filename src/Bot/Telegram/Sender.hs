@@ -116,7 +116,7 @@ instance Logger SenderM where
 
 instance MonadHttp SenderM where
   handleHttpException e = do
-    logError "Error occured while sending message:"
+    logError "Error occured while sending Telegram message:"
     tId <- asks mainThreadId
     liftIO $ throwTo tId e
     liftIO $ throwIO e

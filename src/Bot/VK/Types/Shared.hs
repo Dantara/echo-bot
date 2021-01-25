@@ -10,13 +10,13 @@ data Attachment
   = Photo FileInfo
   | Document FileInfo
   | UnknownAttachment
-  deriving (Eq)
+  deriving (Eq, Show)
 
 
 data FileInfo = FileInfo
   { fileId  :: Integer
   , ownerId :: Integer
-  } deriving (Eq)
+  } deriving (Eq, Show)
 
 
 instance FromJSON Attachment where

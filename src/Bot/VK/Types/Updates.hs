@@ -4,39 +4,48 @@ module Bot.VK.Types.Updates where
 
 import           Bot.VK.Types.Shared
 import           Data.Aeson
+import           Data.Aeson.Types    (Parser)
 import           Data.Text           (Text)
+import qualified Data.Text           as Text
+import           Text.Read           (readMaybe)
 
 
 data Upd = Upd
   { updateId        :: Integer
   , receivedMessage :: ReceivedMsg
-  }
+  } deriving Show
 
 
 data Updates = Updates
   { updatesId       :: Integer
   , receivedUpdates :: [ReceivedUpd]
-  }
+  } deriving Show
 
 
 data ReceivedUpd
   = MessageUpd ReceivedMsg
   | OtherUpd
-  deriving (Eq)
+  deriving (Eq, Show)
 
 
 data ReceivedMsg = ReceivedMsg
   { fromId              :: Integer
   , receivedText        :: Text
   , receivedAttachments :: [Attachment]
-  } deriving (Eq)
+  } deriving (Eq, Show)
 
 
 
 instance FromJSON Updates where
-  parseJSON = withObject "Updates" $ \us -> Updates
-    <$> us .: "ts"
-    <*> us .: "updates"
+  parseJSON = withObject "Updates" $ \us -> do
+    let readField :: (FromJSON a, Read a) => Text -> Parser a
+        readField f = (us .: f)
+          >>= maybe (fail $ "Unreadable field: " <> Text.unpack f) pure
+          . readMaybe
+
+    Updates
+      <$> readField "ts"
+      <*> us .: "updates"
 
 
 instance FromJSON ReceivedUpd where
