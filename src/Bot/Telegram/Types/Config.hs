@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Bot.VK.Types.Config where
+module Bot.Telegram.Types.Config where
 
 import           Bot
-import           Bot.VK.Fetcher                (FetcherEnv (FetcherEnv))
-import           Bot.VK.Sender                 (SenderEnv (SenderEnv))
-import           Bot.VK.Translator             (TranslatorEnv (TranslatorEnv))
+import           Bot.Telegram.Fetcher          (FetcherEnv (FetcherEnv))
+import           Bot.Telegram.Sender           (SenderEnv (SenderEnv))
+import           Bot.Telegram.Translator       (TranslatorEnv (TranslatorEnv))
 import           Control.Concurrent            (myThreadId)
 import           Control.Concurrent.STM.TQueue
 import           Control.Concurrent.STM.TVar
@@ -18,14 +18,8 @@ import qualified Data.Text                     as Text
 import           Logger
 
 
-apiVersion :: Text
-apiVersion = "5.126"
-
-
-data VKConfig = VKConfig
-  { accessToken     :: Text
-  , groupId         :: Text
-  , fetcherTimeout  :: Int
+data TelegramConfig = TelegramConfig
+  { token           :: Text
   , helpMessage     :: Text
   , defaultReps     :: Int
   , repsQuestion    :: Text
@@ -36,11 +30,9 @@ data VKConfig = VKConfig
   }
 
 
-instance FromJSON VKConfig where
-  parseJSON = withObject "VKConfig" $ \c -> VKConfig
-    <$> c .: "access_token"
-    <*> c .: "group_id"
-    <*> c .: "fetcher_timeout"
+instance FromJSON TelegramConfig where
+  parseJSON = withObject "TelegramConfig" $ \c -> TelegramConfig
+    <$> c .: "token"
     <*> c .: "help_message"
     <*> c .: "default_repetitions"
     <*> c .: "repetitions_question"
@@ -50,18 +42,18 @@ instance FromJSON VKConfig where
     <*> c .: "sender_delay"
 
 
-configToEnvs :: VKConfig -> IO (FetcherEnv, TranslatorEnv, SenderEnv)
-configToEnvs (VKConfig at gi ft hm dr rq ll fd td sd) = do
+configToEnvs :: TelegramConfig -> IO (FetcherEnv, TranslatorEnv, SenderEnv)
+configToEnvs (TelegramConfig t hm dr rq ll fd td sd) = do
+  offset <- newTVarIO 0
   uQueue <- newTQueueIO
   mQueue <- newTQueueIO
   repsAmount <- newTVarIO Map.empty
   repsCalled <- newTVarIO Set.empty
-  longPollServer <- newTVarIO Nothing
   threadId <- myThreadId
   ll' <- logLevel' ll
-  let fEnv = FetcherEnv (Token at) gi ll' fd ft threadId longPollServer uQueue apiVersion
+  let fEnv = FetcherEnv offset (Token t) ll' fd threadId uQueue
   let tEnv = TranslatorEnv uQueue mQueue ll' hm repsAmount dr repsCalled rq td
-  let sEnv = SenderEnv (Token at) ll' threadId mQueue repsAmount dr sd apiVersion
+  let sEnv = SenderEnv (Token t) ll' threadId mQueue repsAmount dr sd
   pure (fEnv, tEnv, sEnv)
     where
       logLevel' "debug" = pure Debug

@@ -1,13 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Config where
 
 import           Bot
 import           Bot.Telegram.Fetcher
 import           Bot.Telegram.Sender
 import           Bot.Telegram.Translator
+import           Bot.Telegram.Types.Config     (TelegramConfig)
+import           Bot.VK.Types.Config           (VKConfig)
 import           Control.Concurrent
 import           Control.Concurrent.STM.TQueue
 import           Control.Concurrent.STM.TVar
+import           Data.Aeson
 import qualified Data.Map.Strict               as Map
 import qualified Data.Set                      as Set
 import           Logger
@@ -33,3 +37,15 @@ defaultEnvs = do
   let sEnv = SenderEnv token' logLevel' tId mQueue' rs drs delay'
 
   pure (fEnv, tEnv, sEnv)
+
+
+data Config = Config
+  { telegramConfigs :: [TelegramConfig]
+  , vkConfigs       :: [VKConfig]
+  }
+
+
+instance FromJSON Config where
+  parseJSON = withObject "Config" $ \c -> Config
+    <$> c .: "telegram_configs"
+    <*> c .: "vk_configs"
