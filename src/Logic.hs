@@ -4,7 +4,7 @@
 module Logic where
 
 import           Bot
-import           Control.Monad (replicateM_, (>=>))
+import           Control.Monad ((>=>))
 
 
 fetcher :: (MonadFetcher m, HasUpdateQueue m, HasOffset m, MonadSleep m) => m ()
@@ -23,16 +23,11 @@ translator :: (MonadTranslator m,
 translator = pullUpdate >>= maybe
   sleep
   (updateToMessage
-   >=> handleRepetitions
-   >=> pushMessage)
+   >=> handleRepeatCommand
+   >=> repeatMessage
+   >=> mapM_ pushMessage)
 
 
-sender :: (MonadSender m, HasMessageQueue m, HasRepetitions m, MonadSleep m) => m ()
-sender = do
-  msg <- pullMessage
-  case msg of
-    Just m -> do
-      rs <- chatIdOfMessage m >>= getRepetitions
-      replicateM_ rs (sendMessage m)
-    Nothing ->
-      sleep
+sender :: (MonadSender m, HasMessageQueue m, MonadSleep m) => m ()
+sender = pullMessage
+  >>= maybe sleep sendMessage

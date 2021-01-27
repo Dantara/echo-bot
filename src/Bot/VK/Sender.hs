@@ -55,10 +55,13 @@ instance MonadSender SenderM where
 
     let params = [ "access_token" =: token'
                  , "user_id" =: userId msg
+                 , "message" =: text msg
                  , "random_id" =: randomId msg
                  , "attachment" =: serializeAttachments (attachments msg)
                  , "v" =: apiV
-                 ] <> ["message" =: text msg | not $ Text.null $ text msg]
+                 ]
+
+    logDebug "Sending message to VK"
 
     void $ req
              GET

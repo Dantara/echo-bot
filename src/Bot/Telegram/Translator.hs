@@ -86,13 +86,13 @@ instance MonadSleep TranslatorM where
 
 
 instance RepetitionsHandler TranslatorM where
-  handleRepetitions msg@(Msg ci (CommandContent RepeatCommand _)) = do
+  handleRepeatCommand msg@(Msg ci (CommandContent RepeatCommand _)) = do
     rs <- asks repsCommandCalled
     liftIO $ atomically $ modifyTVar' rs (Set.insert ci)
     logInfo "User wants to update repetitions amount"
     pure msg
 
-  handleRepetitions msg@(Msg ci (TextContent t)) = do
+  handleRepeatCommand msg@(Msg ci (TextContent t)) = do
     trs <- asks repsCommandCalled
     rs <- liftIO $ readTVarIO trs
 
@@ -102,16 +102,23 @@ instance RepetitionsHandler TranslatorM where
           updateRepetitions i ci
           liftIO $ atomically $ modifyTVar' trs (Set.delete ci)
           logInfo "User repetitions was updated"
-        else
+          pure $ Msg ci (TextContent "Repetitions amount was updated!")
+        else do
           logWarning "User supplied wrong number of repetitions"
-        pure $ Msg ci (TextContent "Repetitions amount was updated!")
+          let t' = "Wrong number of repetitions.\n"
+                <> "Number should lie between 1 and 5."
+          pure $ Msg ci (TextContent t')
       (True, Nothing) -> do
           logWarning "User supplied malformed number of repetitions"
           pure msg
       (False, _) ->
         pure msg
 
-  handleRepetitions msg = pure msg
+  handleRepeatCommand msg = pure msg
+
+  repeatMessage msg = do
+    rs <- getRepetitions $ chatId msg
+    pure $ replicate rs msg
 
 
 receivedMsgToMsg :: ReceivedMsg -> TranslatorM Msg

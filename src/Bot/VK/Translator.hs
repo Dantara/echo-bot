@@ -84,13 +84,13 @@ instance MonadTranslator TranslatorM where
 
 
 instance RepetitionsHandler TranslatorM where
-  handleRepetitions msg@(Msg ci _ _ _ (Just RepeatCommand)) = do
+  handleRepeatCommand msg@(Msg ci _ _ _ (Just RepeatCommand)) = do
     rs <- asks repsCommandCalled
     liftIO $ atomically $ modifyTVar' rs (Set.insert ci)
     logInfo "User wants to update repetitions amount"
     pure msg
 
-  handleRepetitions msg@(Msg ci ri t _ _) = do
+  handleRepeatCommand msg@(Msg ci ri t _ _) = do
     trs <- asks repsCommandCalled
     rs <- liftIO $ readTVarIO trs
 
@@ -100,14 +100,23 @@ instance RepetitionsHandler TranslatorM where
           updateRepetitions i ci
           liftIO $ atomically $ modifyTVar' trs (Set.delete ci)
           logInfo "User repetitions was updated"
-        else
+          pure $ Msg ci ri "Repetitions amount was updated!" [] Nothing
+        else do
           logWarning "User supplied wrong number of repetitions"
-        pure $ Msg ci ri "Repetitions amount was updated!" [] Nothing
+          let t' = "Wrong number of repetitions.\n"
+                <> "Number should lie between 1 and 5."
+          pure $ Msg ci ri t' [] Nothing
       (True, Nothing) -> do
           logWarning "User supplied malformed number of repetitions"
           pure msg
       (False, _) ->
         pure msg
+
+  repeatMessage msg = do
+    rs <- getRepetitions $ userId msg
+    pure $ zipWith updateMsg [0..] (replicate rs msg)
+      where
+        updateMsg n m = m { randomId = randomId m + n }
 
 
 instance HasUpdateQueue TranslatorM where

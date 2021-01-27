@@ -62,10 +62,10 @@ instance MonadFetcher FetcherM where
         timeout <- asks fetcherTimeout
 
         let params = [ "act" =: ("a_check" :: Text)
-                      , "key" =: key lps
-                      , "ts" =: ts lps
-                      , "wait" =: timeout
-                      ]
+                     , "key" =: key lps
+                     , "ts" =: ts lps
+                     , "wait" =: timeout
+                     ]
 
         logDebug "Fetching updates from VK"
 

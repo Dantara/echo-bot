@@ -17,12 +17,6 @@ import           Data.Text                     (Text)
 import           Logger
 
 
-data BotPart a b c
-  = Fetcher a
-  | Translator b
-  | Sender c
-
-
 class (Monad m, Logger m) => MonadFetcher m where
   fetchUpdates :: m [Update m]
   offsetOfUpdate :: Update m -> m Integer
@@ -100,7 +94,9 @@ class (Monad m) => HasRepetitions m where
 
 
 class (HasRepetitions m, Logger m) => RepetitionsHandler m where
-  handleRepetitions :: Message m -> m (Message m)
+  handleRepeatCommand :: Message m -> m (Message m)
+
+  repeatMessage :: Message m -> m [Message m]
 
 
 class (Monad m) => MonadSleep m where
