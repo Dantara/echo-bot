@@ -19,7 +19,7 @@ import           Logger
 
 
 apiVersion :: Text
-apiVersion = "5.126"
+apiVersion = "5.125"
 
 
 data VKConfig = VKConfig

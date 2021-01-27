@@ -61,11 +61,11 @@ instance MonadSender SenderM where
                  ] <> ["message" =: text msg | not $ Text.null $ text msg]
 
     void $ req
-           GET
-           (https "api.vk.com" /: "method" /: "messages.send")
-           NoReqBody
-           bsResponse
-           (mconcat params)
+             GET
+             (https "api.vk.com" /: "method" /: "messages.send")
+             NoReqBody
+             ignoreResponse
+             (mconcat params)
 
   chatIdOfMessage = pure . userId
 

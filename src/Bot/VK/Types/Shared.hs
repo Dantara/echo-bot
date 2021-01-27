@@ -8,14 +8,20 @@ import           Data.Text  (Text)
 
 data Attachment
   = Photo FileInfo
+  | Video FileInfo
+  | Audio FileInfo
   | Document FileInfo
+  | Wall FileInfo
+  | Market FileInfo
+  | Poll FileInfo
   | UnknownAttachment
   deriving (Eq, Show)
 
 
 data FileInfo = FileInfo
-  { fileId  :: Integer
-  , ownerId :: Integer
+  { mediaId   :: Integer
+  , ownerId   :: Integer
+  , accessKey :: Maybe Text
   } deriving (Eq, Show)
 
 
@@ -25,8 +31,18 @@ instance FromJSON Attachment where
     case type' :: Text of
       "photo" ->
         Photo <$> (a .: "photo")
+      "video" ->
+        Video <$> (a .: "video")
+      "audio" ->
+        Audio <$> (a .: "audio")
       "doc" ->
         Document <$> (a .: "doc")
+      "wall" ->
+        Wall <$> (a .: "wall")
+      "market" ->
+        Market <$> (a .: "market")
+      "poll" ->
+        Poll <$> (a .: "poll")
       _ ->
         pure UnknownAttachment
 
@@ -35,3 +51,4 @@ instance FromJSON FileInfo where
   parseJSON = withObject "FileInfo" $ \f -> FileInfo
     <$> f .: "id"
     <*> f .: "owner_id"
+    <*> f .:? "access_key"

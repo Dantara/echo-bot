@@ -6,6 +6,7 @@ module Bot.VK.Translator where
 
 import           Bot
 import           Bot.VK.Types.Msg
+import           Bot.VK.Types.Shared           (Attachment (..))
 import           Bot.VK.Types.Updates
 import           Control.Concurrent            (forkFinally, killThread,
                                                 myThreadId, threadDelay)
@@ -72,9 +73,14 @@ instance MonadTranslator TranslatorM where
       receivedMsgToMsg (ReceivedMsg fi t as) = do
         ri <- nextRandomNumber
         logDebug "VK update was translated"
+        handleUnknownAttachment as
         pure $ Msg fi ri t as Nothing
 
       nextRandomNumber = fromIntegral . fst . next <$> liftIO newTFGen
+
+      handleUnknownAttachment as = if UnknownAttachment `elem` as
+        then logWarning "Unknown attachment was received"
+        else pure ()
 
 
 instance RepetitionsHandler TranslatorM where

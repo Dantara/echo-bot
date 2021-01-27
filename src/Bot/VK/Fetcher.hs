@@ -23,7 +23,6 @@ import           Control.Monad.Reader          (MonadReader, ReaderT, asks,
 import           Control.Monad.STM             (atomically)
 import           Data.Functor                  ((<&>))
 import           Data.Text                     (Text)
-import           Debug.Trace
 import           Logger
 import           Network.HTTP.Req
 
@@ -59,25 +58,25 @@ instance MonadFetcher FetcherM where
       proceedRequest
       maybeLps
     where
-       proceedRequest lps = do
-         timeout <- asks fetcherTimeout
+      proceedRequest lps = do
+        timeout <- asks fetcherTimeout
 
-         let params = [ "act" =: ("a_check" :: Text)
+        let params = [ "act" =: ("a_check" :: Text)
                       , "key" =: key lps
                       , "ts" =: ts lps
                       , "wait" =: timeout
                       ]
 
-         logDebug "Fetching updates from VK"
+        logDebug "Fetching updates from VK"
 
-         r <- req
-                GET
-                (serverAddr lps)
-                NoReqBody
-                jsonResponse
-                (mconcat params)
+        r <- req
+               GET
+               (serverAddr lps)
+               NoReqBody
+               jsonResponse
+               (mconcat params)
 
-         pure $ updatesToUpds $ responseBody r
+        pure $ updatesToUpds $ responseBody r
 
   offsetOfUpdate = pure . updateId
 
