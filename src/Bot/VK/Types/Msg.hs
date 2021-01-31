@@ -14,7 +14,7 @@ data Msg = Msg
   , text        :: Text
   , attachments :: [Attachment]
   , command     :: Maybe Command
-  }
+  } deriving (Eq)
 
 
 serializeAttachments :: [Attachment] -> Text

@@ -30,6 +30,7 @@ dependencies:
 - mtl
 - transformers
 - tf-random
+- template-haskell
 
 library:
   source-dirs: src

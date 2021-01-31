@@ -106,6 +106,7 @@ class (Monad m) => MonadSleep m where
 data Command
   = HelpCommand
   | RepeatCommand
+  deriving (Eq)
 
 
 type ChatId = Integer

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 73aa4f2985cbd79f81fcaa659bbe18772e79a2fc6daf2ddaac4bf7f7bd4eee66
+-- hash: d2ca853e6046d05845503f455907fa7746f2ddd6f066f627985e8bf612b907ee
 
 name:           echo-bot
 version:        0.1.0.0
@@ -40,6 +40,7 @@ library
       Bot.VK.Fetcher
       Bot.VK.Fetcher.LongPollServer
       Bot.VK.Sender
+      Bot.VK.Sender.Keyboard
       Bot.VK.Translator
       Bot.VK.Types.Config
       Bot.VK.Types.Msg
@@ -61,6 +62,7 @@ library
     , mtl
     , req
     , stm
+    , template-haskell
     , text
     , tf-random
     , transformers
@@ -82,6 +84,7 @@ executable echo-bot-exe
     , mtl
     , req
     , stm
+    , template-haskell
     , text
     , tf-random
     , transformers
@@ -104,6 +107,7 @@ test-suite echo-bot-test
     , mtl
     , req
     , stm
+    , template-haskell
     , text
     , tf-random
     , transformers

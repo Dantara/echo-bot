@@ -1,11 +1,13 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 
 module Bot.VK.Sender where
 
 import           Bot
+import           Bot.VK.Sender.Keyboard        (getKeyboard)
 import           Bot.VK.Types.Msg
 import           Control.Concurrent            (ThreadId, forkFinally,
                                                 killThread, myThreadId,
@@ -59,6 +61,9 @@ instance MonadSender SenderM where
                  , "random_id" =: randomId msg
                  , "attachment" =: serializeAttachments (attachments msg)
                  , "v" =: apiV
+                 ] <>
+                 [ "keyboard" =: ($(getKeyboard) :: Text)
+                 | command msg == Just RepeatCommand
                  ]
 
     logDebug "Sending message to VK"
