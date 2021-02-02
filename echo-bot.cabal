@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d2ca853e6046d05845503f455907fa7746f2ddd6f066f627985e8bf612b907ee
+-- hash: 078d8aca116a2e5f6993a03ad1261421f6f31f7fa01cd1d4b4a815769732f6bc
 
 name:           echo-bot
 version:        0.1.0.0
@@ -59,6 +59,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
+    , hspec
     , mtl
     , req
     , stm
@@ -81,6 +82,7 @@ executable echo-bot-exe
     , bytestring
     , containers
     , echo-bot
+    , hspec
     , mtl
     , req
     , stm
@@ -94,6 +96,7 @@ test-suite echo-bot-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      LogicSpec
       Paths_echo_bot
   hs-source-dirs:
       test
@@ -104,6 +107,7 @@ test-suite echo-bot-test
     , bytestring
     , containers
     , echo-bot
+    , hspec
     , mtl
     , req
     , stm

@@ -26,7 +26,7 @@ class (Monad m, Logger m) => MonadTranslator m where
   updateToMessage :: Update m -> m (Message m)
 
 
-class (MonadIO m, Logger m) => MonadSender m where
+class (Monad m, Logger m) => MonadSender m where
   sendMessage :: Message m -> m ()
   chatIdOfMessage :: Message m -> m ChatId
 

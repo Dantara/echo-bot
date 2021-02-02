@@ -1,7 +1,5 @@
 module Bot.VK.Sender.Keyboard where
 
-import           Data.Text           (Text)
-import qualified Data.Text.IO        as Text (readFile)
 import           Language.Haskell.TH
 
 
