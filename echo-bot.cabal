@@ -4,16 +4,16 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 078d8aca116a2e5f6993a03ad1261421f6f31f7fa01cd1d4b4a815769732f6bc
+-- hash: 1c83db7873d9c03143d6935fd4f53551f67a625491d1b3d0cc501bd687a021da
 
 name:           echo-bot
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/echo-bot#readme>
-homepage:       https://github.com/githubuser/echo-bot#readme
-bug-reports:    https://github.com/githubuser/echo-bot/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2020 Author name here
+description:    Please see the README on GitHub at <https://github.com/Dantara/echo-bot#readme>
+homepage:       https://github.com/Dantara/echo-bot#readme
+bug-reports:    https://github.com/Dantara/echo-bot/issues
+author:         Nikita Aleshchenko
+maintainer:     n.aleschenko@innopolis.university
+copyright:      2021 Nikita Aleshchenko
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -23,7 +23,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/echo-bot
+  location: https://github.com/Dantara/echo-bot
 
 library
   exposed-modules:
@@ -59,7 +59,6 @@ library
     , base >=4.7 && <5
     , bytestring
     , containers
-    , hspec
     , mtl
     , req
     , stm
@@ -82,7 +81,6 @@ executable echo-bot-exe
     , bytestring
     , containers
     , echo-bot
-    , hspec
     , mtl
     , req
     , stm
@@ -107,10 +105,14 @@ test-suite echo-bot-test
     , bytestring
     , containers
     , echo-bot
-    , hspec
+    , hedgehog
     , mtl
     , req
     , stm
+    , tasty
+    , tasty-discover
+    , tasty-hedgehog
+    , tasty-hunit
     , template-haskell
     , text
     , tf-random

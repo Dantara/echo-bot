@@ -9,24 +9,15 @@ import           Data.Functor             ((<&>))
 import           Data.Map.Strict          (Map)
 import qualified Data.Map.Strict          as Map
 import           Data.Maybe               (fromMaybe)
+import           Hedgehog
+import qualified Hedgehog.Gen             as Gen
+import qualified Hedgehog.Range           as Range
+import           Helpers
 import           Logger
 import           Logic
-
-
-data Queue a = Queue [a] [a]
-
-pushToQueue :: a -> Queue a -> Queue a
-pushToQueue e (Queue xs ys) = Queue (e:xs) ys
-
-pullFromQueue :: Queue a -> Maybe (a, Queue a)
-pullFromQueue (Queue [] []) = Nothing
-pullFromQueue (Queue xs []) = Just (y, Queue [] ys)
-  where
-    (y:ys) = reverse xs
-pullFromQueue (Queue xs (y:ys)) = Just (y, Queue xs ys)
-
-queueToList :: Queue a -> [a]
-queueToList (Queue xs ys) = ys <> reverse xs
+import           Test.Tasty
+import           Test.Tasty.HUnit
+import           Test.Tasty.Hedgehog
 
 
 newtype TestM a = TestM { unwrapTestM :: State TestState a}
@@ -51,7 +42,7 @@ data Upd = Upd
   { updOffset  :: Integer
   , updChatId  :: ChatId
   , updContent :: Content
-  }
+  } deriving (Eq, Show)
 
 data Msg = Msg
   { msgOffset  :: Integer
@@ -60,6 +51,7 @@ data Msg = Msg
   }
 
 data Content = Content
+  deriving (Eq, Show)
 
 
 instance Logger TestM where
@@ -151,3 +143,32 @@ instance RepetitionsHandler TestM where
 
 instance MonadSleep TestM where
   sleep = pure ()
+
+
+test_fetcher :: TestTree
+test_fetcher = testGroup "Fetcher tests"
+  [ testCase "HelloWorld test case" ("Hello" @?= "Hello")
+  , testProperty "UpdateQueue === ReceivedMsgs" updQueueCheck
+  , testProperty "GlobalOffset === Last Upd Offset" offsetCheck
+  ]
+  where
+    updQueueCheck :: Property
+    updQueueCheck = property $ do
+      upds <- forAll $ Gen.list (Range.linear 0 30) genUpd
+      let s = execState
+                (unwrapTestM fetcher)
+                (TestState upds emptyQueue emptyQueue 0 [] Map.empty)
+      queueToList (updateQueue s) === upds
+
+    offsetCheck :: Property
+    offsetCheck = property $ do
+      upds <- forAll $ Gen.list (Range.linear 1 30) genUpd
+      let s = execState
+                (unwrapTestM fetcher)
+                (TestState upds emptyQueue emptyQueue 0 [] Map.empty)
+      globalOffset s === updOffset (last upds)
+
+    genUpd = Upd
+      <$> Gen.integral (Range.linear 1 10000)
+      <*> Gen.integral (Range.linear 1 10000)
+      <*> pure Content

@@ -10,3 +10,23 @@ camelToSnakeCase (x:xs)
   | otherwise = h <> "_" <> camelToSnakeCase t
   where
     (h, t) = span isLower (toLower x : xs)
+
+
+
+data Queue a = Queue [a] [a]
+
+pushToQueue :: a -> Queue a -> Queue a
+pushToQueue e (Queue xs ys) = Queue (e:xs) ys
+
+pullFromQueue :: Queue a -> Maybe (a, Queue a)
+pullFromQueue (Queue [] []) = Nothing
+pullFromQueue (Queue xs []) = Just (y, Queue [] ys)
+  where
+    (y:ys) = reverse xs
+pullFromQueue (Queue xs (y:ys)) = Just (y, Queue xs ys)
+
+queueToList :: Queue a -> [a]
+queueToList (Queue xs ys) = ys <> reverse xs
+
+emptyQueue :: Queue a
+emptyQueue = Queue [] []
