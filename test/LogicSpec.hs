@@ -9,6 +9,7 @@ import           Data.Functor             ((<&>))
 import           Data.Map.Strict          (Map)
 import qualified Data.Map.Strict          as Map
 import           Data.Maybe               (fromMaybe)
+import           Data.Text                (Text)
 import           Hedgehog
 import qualified Hedgehog.Gen             as Gen
 import qualified Hedgehog.Range           as Range
@@ -41,18 +42,13 @@ data TestState = TestState
 data Upd = Upd
   { updOffset  :: Integer
   , updChatId  :: ChatId
-  , updContent :: Content
+  , updContent :: Text
   } deriving (Eq, Show)
 
 data Msg = Msg
-  { msgOffset  :: Integer
-  , msgChatId  :: ChatId
-  , msgContent :: Content
-  }
-
-data Content = Content
-  deriving (Eq, Show)
-
+  { msgChatId  :: ChatId
+  , msgContent :: Text
+  } deriving (Eq, Show)
 
 instance Logger TestM where
   log = logIdentity
@@ -103,7 +99,7 @@ instance HasMessageQueue TestM where
 
 
 instance MonadTranslator TestM where
-  updateToMessage (Upd x y z) = pure $ Msg x y z
+  updateToMessage (Upd _ x y) = pure $ Msg x y
 
 
 instance MonadSender TestM where
@@ -111,7 +107,7 @@ instance MonadSender TestM where
     ms <- gets sendedMessages
     modify (\s -> s { sendedMessages = m : ms })
 
-  chatIdOfMessage (Msg _ ci _) = pure ci
+  chatIdOfMessage (Msg ci _) = pure ci
 
 
 instance HasOffset TestM where
@@ -147,8 +143,7 @@ instance MonadSleep TestM where
 
 test_fetcher :: TestTree
 test_fetcher = testGroup "Fetcher tests"
-  [ testCase "HelloWorld test case" ("Hello" @?= "Hello")
-  , testProperty "UpdateQueue === ReceivedMsgs" updQueueCheck
+  [ testProperty "UpdateQueue === ReceivedMsgs" updQueueCheck
   , testProperty "GlobalOffset === Last Upd Offset" offsetCheck
   ]
   where
@@ -164,11 +159,53 @@ test_fetcher = testGroup "Fetcher tests"
     offsetCheck = property $ do
       upds <- forAll $ Gen.list (Range.linear 1 30) genUpd
       let s = execState
-                (unwrapTestM fetcher)
-                (TestState upds emptyQueue emptyQueue 0 [] Map.empty)
+            (unwrapTestM fetcher)
+            (TestState upds emptyQueue emptyQueue 0 [] Map.empty)
       globalOffset s === updOffset (last upds)
 
     genUpd = Upd
       <$> Gen.integral (Range.linear 1 10000)
       <*> Gen.integral (Range.linear 1 10000)
-      <*> pure Content
+      <*> Gen.text (Range.linear 10 20) Gen.alpha
+
+
+test_translator :: TestTree
+test_translator = testGroup "Translator tests"
+  [ testProperty "Correct repetitions amount" repeatCheck
+  ]
+  where
+    repeatCheck :: Property
+    repeatCheck = property $ do
+      (reps, upds) <- unzip
+        <$> forAll (Gen.list (Range.linear 1 30) genRepAndUpd)
+      let n = length upds
+      let s = execState
+            (unwrapTestM $ replicateM_ n translator)
+            (TestState [] (listToQueue upds) emptyQueue 0 [] (Map.fromList reps))
+      queueSize (messageQueue s) === sum (snd <$> reps)
+
+    genRepAndUpd = do
+      o <- Gen.integral (Range.linear 1 10000)
+      r <- Gen.integral (Range.linear 1 5)
+      ci <- Gen.integral (Range.linear 1 10000)
+      t <- Gen.text (Range.linear 10 20) Gen.alpha
+      pure ((ci, r), Upd o ci t)
+
+
+test_sender :: TestTree
+test_sender = testGroup "Sender tests"
+  [ testProperty "All messages are sended" msgsNotMissing
+  ]
+  where
+    msgsNotMissing :: Property
+    msgsNotMissing = property $ do
+      msgs <- forAll $ Gen.list (Range.linear 1 30) genMsg
+      let n = length msgs
+      let s = execState
+            (unwrapTestM $ replicateM_ n sender)
+            (TestState [] emptyQueue (listToQueue msgs) 0 [] Map.empty)
+      msgs === sendedMessages s
+
+    genMsg = Msg
+      <$> Gen.integral (Range.linear 1 10000)
+      <*> Gen.text (Range.linear 10 20) Gen.alpha

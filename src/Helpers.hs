@@ -15,6 +15,9 @@ camelToSnakeCase (x:xs)
 
 data Queue a = Queue [a] [a]
 
+emptyQueue :: Queue a
+emptyQueue = Queue [] []
+
 pushToQueue :: a -> Queue a -> Queue a
 pushToQueue e (Queue xs ys) = Queue (e:xs) ys
 
@@ -25,8 +28,11 @@ pullFromQueue (Queue xs []) = Just (y, Queue [] ys)
     (y:ys) = reverse xs
 pullFromQueue (Queue xs (y:ys)) = Just (y, Queue xs ys)
 
+queueSize :: Queue a -> Int
+queueSize (Queue xs ys) = length xs + length ys
+
 queueToList :: Queue a -> [a]
 queueToList (Queue xs ys) = ys <> reverse xs
 
-emptyQueue :: Queue a
-emptyQueue = Queue [] []
+listToQueue :: [a] -> Queue a
+listToQueue xs = Queue [] (reverse xs)
