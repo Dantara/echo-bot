@@ -17,7 +17,6 @@ import           Helpers
 import           Logger
 import           Logic
 import           Test.Tasty
-import           Test.Tasty.HUnit
 import           Test.Tasty.Hedgehog
 
 
@@ -182,19 +181,12 @@ test_translator = testGroup "Translator tests"
       let s = execState
             (unwrapTestM $ replicateM_ n translator)
             (TestState [] (listToQueue upds) emptyQueue 0 [] (Map.fromList reps))
-      queueSize (messageQueue s) === sum (snd <$> reps)
-
-    genRepAndUpd = do
-      o <- Gen.integral (Range.linear 1 10000)
-      r <- Gen.integral (Range.linear 1 5)
-      ci <- Gen.integral (Range.linear 1 10000)
-      t <- Gen.text (Range.linear 10 20) Gen.alpha
-      pure ((ci, r), Upd o ci t)
+      queueSize (messageQueue s) === totalMsgsAmount (repetitions s) upds
 
 
 test_sender :: TestTree
 test_sender = testGroup "Sender tests"
-  [ testProperty "All messages are sended" msgsNotMissing
+  [ testProperty "Messages Queue === Mesages Send" msgsNotMissing
   ]
   where
     msgsNotMissing :: Property
@@ -209,3 +201,39 @@ test_sender = testGroup "Sender tests"
     genMsg = Msg
       <$> Gen.integral (Range.linear 1 10000)
       <*> Gen.text (Range.linear 10 20) Gen.alpha
+
+
+test_all_logic :: TestTree
+test_all_logic = testGroup "Full bussiness logic tests"
+  [ testProperty "Correct repetitions amount" repeatCheck
+  ]
+  where
+    repeatCheck :: Property
+    repeatCheck = property $ do
+      (reps, upds) <- unzip
+        <$> forAll (Gen.list (Range.linear 1 50) genRepAndUpd)
+      let n = length upds
+      let totalN = totalMsgsAmount (Map.fromList reps) upds
+      let s = execState
+            (unwrapTestM $ do
+                fetcher
+                replicateM_ n translator
+                replicateM_ totalN sender)
+            (TestState upds emptyQueue emptyQueue 0 [] (Map.fromList reps))
+      length (sendedMessages s) === totalN
+
+
+genRepAndUpd :: Gen ((ChatId, Int), Upd)
+genRepAndUpd = do
+  o <- Gen.integral (Range.linear 1 10000)
+  r <- Gen.integral (Range.linear 1 5)
+  ci <- Gen.integral (Range.linear 1 10000)
+  t <- Gen.text (Range.linear 10 20) Gen.alpha
+  pure ((ci, r), Upd o ci t)
+
+
+totalMsgsAmount :: Map ChatId Int -> [Upd] -> Int
+totalMsgsAmount rs = length
+  . foldMap (\x -> replicate (reps x) x)
+  where
+    reps (Upd _ ci _) = Map.findWithDefault 1 ci rs
