@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1c83db7873d9c03143d6935fd4f53551f67a625491d1b3d0cc501bd687a021da
+-- hash: 40bb561b363b6354f4e0e6dc602590f1df8016563f92433dd9c22e878ed870ea
 
 name:           echo-bot
 version:        0.1.0.0
@@ -95,6 +95,7 @@ test-suite echo-bot-test
   main-is: Spec.hs
   other-modules:
       LogicSpec
+      LogicSpec.Internals
       Paths_echo_bot
   hs-source-dirs:
       test

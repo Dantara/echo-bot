@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeFamilies               #-}
 
@@ -126,6 +127,10 @@ instance MonadHttp SenderM where
 
 instance MonadSleep SenderM where
   sleep = liftIO . threadDelay =<< asks senderDelay
+
+
+instance Runnable SenderM SenderEnv where
+  runBot app = runReaderT (unwrapSenderM app)
 
 
 runSender :: SenderM a -> SenderEnv -> IO a

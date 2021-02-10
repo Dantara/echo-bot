@@ -1,6 +1,7 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeFamilies               #-}
 
@@ -99,6 +100,10 @@ instance HasOffset FetcherM where
 
 instance MonadSleep FetcherM where
   sleep = liftIO . threadDelay =<< asks fetcherDelay
+
+
+instance Runnable FetcherM FetcherEnv where
+  runBot app = runReaderT (unwrapFetcherM app)
 
 
 runFetcher :: FetcherM a -> FetcherEnv -> IO a

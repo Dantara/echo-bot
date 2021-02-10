@@ -1,10 +1,13 @@
-{-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE DefaultSignatures      #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE TypeFamilies           #-}
 
 module Bot where
 
+import           Control.Concurrent            (forkFinally, killThread,
+                                                myThreadId)
 import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
                                                 writeTQueue)
 import           Control.Concurrent.STM.TVar   (TVar, modifyTVar', readTVarIO)
@@ -103,6 +106,10 @@ class (Monad m) => MonadSleep m where
   sleep :: m ()
 
 
+class (MonadIO m) => Runnable m s | m -> s where
+  runBot :: m a -> s -> IO a
+
+
 data Command
   = HelpCommand
   | RepeatCommand
@@ -115,3 +122,7 @@ type ChatId = Integer
 newtype Token = Token { extractToken :: Text }
 
 
+loopBot :: (Runnable m s) => m a -> s -> IO ()
+loopBot app env = void $ forkFinally
+  (forever $ runBot app env)
+  (either (const $ myThreadId >>= killThread) (const $ pure ()))

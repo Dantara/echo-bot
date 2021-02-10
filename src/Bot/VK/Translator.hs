@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeFamilies               #-}
 
@@ -151,11 +152,5 @@ instance MonadSleep TranslatorM where
   sleep = liftIO . threadDelay =<< asks translatorDelay
 
 
-runTranslator :: TranslatorM a -> TranslatorEnv -> IO a
-runTranslator app = runReaderT (unwrapTranslatorM app)
-
-
-loopTranslator :: TranslatorM a -> TranslatorEnv -> IO ()
-loopTranslator app env = void $ forkFinally
-  (forever $ runTranslator app env)
-  (either (const $ myThreadId >>= killThread) (const $ pure ()))
+instance Runnable TranslatorM TranslatorEnv where
+  runBot app = runReaderT (unwrapTranslatorM app)

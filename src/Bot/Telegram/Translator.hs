@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeFamilies               #-}
 
@@ -119,6 +120,10 @@ instance RepetitionsHandler TranslatorM where
   repeatMessage msg = do
     rs <- getRepetitions $ chatId msg
     pure $ replicate rs msg
+
+
+instance Runnable TranslatorM TranslatorEnv where
+  runBot app = runReaderT (unwrapTranslatorM app)
 
 
 receivedMsgToMsg :: ReceivedMsg -> TranslatorM Msg

@@ -1,6 +1,7 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeFamilies               #-}
 
@@ -156,11 +157,5 @@ instance MonadSleep FetcherM where
   sleep = liftIO . threadDelay =<< asks fetcherDelay
 
 
-runFetcher :: FetcherM a -> FetcherEnv -> IO a
-runFetcher app = runReaderT (unwrapFetcherM app)
-
-
-loopFetcher :: FetcherM a -> FetcherEnv -> IO ()
-loopFetcher app env = void $ forkFinally
-  (forever $ runFetcher app env)
-  (either (const $ myThreadId >>= killThread) (const $ pure ()))
+instance Runnable FetcherM FetcherEnv where
+  runBot app = runReaderT (unwrapFetcherM app)

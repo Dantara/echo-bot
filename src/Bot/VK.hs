@@ -1,20 +1,22 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleInstances  #-}
+{-# LANGUAGE TypeApplications   #-}
 {-# LANGUAGE TypeFamilies       #-}
 
 module Bot.VK where
 
-import           Bot.VK.Fetcher      (loopFetcher)
-import           Bot.VK.Sender       (loopSender)
-import           Bot.VK.Translator   (loopTranslator)
+import           Bot                 (loopBot)
+import           Bot.VK.Fetcher      (FetcherM)
+import           Bot.VK.Sender       (SenderM)
+import           Bot.VK.Translator   (TranslatorM)
 import           Bot.VK.Types.Config (VKConfig (..), configToEnvs)
 import           Control.Monad       (replicateM_)
 import           Logic               (fetcher, sender, translator)
 
 
-runBot :: VKConfig -> IO ()
-runBot cfg = do
+startBot :: VKConfig -> IO ()
+startBot cfg = do
   (fEnv, tEnv, sEnv) <- configToEnvs cfg
-  replicateM_ (fetchersAmount cfg) (loopFetcher fetcher fEnv)
-  replicateM_ (translatorsAmount cfg) (loopTranslator translator tEnv)
-  replicateM_ (sendersAmount cfg) (loopSender sender sEnv)
+  replicateM_ (fetchersAmount cfg) (loopBot @FetcherM fetcher fEnv)
+  replicateM_ (translatorsAmount cfg) (loopBot @TranslatorM translator tEnv)
+  replicateM_ (sendersAmount cfg) (loopBot @SenderM sender sEnv)

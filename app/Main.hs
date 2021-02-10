@@ -13,9 +13,9 @@ main = do
 
   case eitherCfg of
     Right cfg -> do
-     mapM_ Telegram.runBot (telegramConfigs cfg)
-     mapM_ VK.runBot (vkConfigs cfg)
+     mapM_ Telegram.startBot (telegramConfigs cfg)
+     mapM_ VK.startBot (vkConfigs cfg)
     Left err ->
       putStrLn $ "[Error] Error while parsing config:\n" <> err
 
-  void $ forever $ threadDelay 10000000
+  forever $ threadDelay 10000000
