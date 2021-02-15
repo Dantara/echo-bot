@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module Bot.VK.Types.Config where
 
 import           Bot
-import           Bot.VK.Fetcher                (FetcherEnv (FetcherEnv))
-import           Bot.VK.Sender                 (SenderEnv (SenderEnv))
-import           Bot.VK.Translator             (TranslatorEnv (TranslatorEnv))
+import           Bot.VK.Fetcher                (FetcherEnv (..))
+import           Bot.VK.Sender                 (SenderEnv (..))
+import           Bot.VK.Translator             (TranslatorEnv (..))
 import           Control.Concurrent            (myThreadId)
 import           Control.Concurrent.STM.TQueue
 import           Control.Concurrent.STM.TVar
@@ -18,18 +19,18 @@ import qualified Data.Text                     as Text
 import           Logger
 
 
-apiVersion :: Text
-apiVersion = "5.125"
+defaultApiVersion :: Text
+defaultApiVersion = "5.125"
 
 
 data VKConfig = VKConfig
-  { accessToken       :: Text
+  { token             :: Token
   , groupId           :: Text
   , fetcherTimeout    :: Int
-  , helpMessage       :: Text
+  , helpMsg           :: Text
   , defaultReps       :: Int
   , repsQuestion      :: Text
-  , logLevel          :: Text
+  , logLevel          :: LogLevel
   , fetcherDelay      :: Int
   , translatorDelay   :: Int
   , senderDelay       :: Int
@@ -57,22 +58,15 @@ instance FromJSON VKConfig where
 
 
 configToEnvs :: VKConfig -> IO (FetcherEnv, TranslatorEnv, SenderEnv)
-configToEnvs (VKConfig at gi ft hm dr rq ll fd td sd _ _ _) = do
-  uQueue <- newTQueueIO
-  mQueue <- newTQueueIO
-  repsAmount <- newTVarIO Map.empty
-  repsCalled <- newTVarIO Set.empty
+configToEnvs VKConfig {..} = do
+  tUpdates <- newTQueueIO
+  tMessages <- newTQueueIO
+  repetitions <- newTVarIO Map.empty
+  repsCommandCalled <- newTVarIO Set.empty
   longPollServer <- newTVarIO Nothing
-  threadId <- myThreadId
-  ll' <- logLevel' ll
-  let fEnv = FetcherEnv (Token at) gi ll' fd ft threadId longPollServer uQueue apiVersion
-  let tEnv = TranslatorEnv uQueue mQueue ll' hm repsAmount dr repsCalled rq td
-  let sEnv = SenderEnv (Token at) ll' threadId mQueue repsAmount dr sd apiVersion
+  mainThreadId <- myThreadId
+  let apiVersion = defaultApiVersion
+  let fEnv = FetcherEnv { .. }
+  let tEnv = TranslatorEnv { .. }
+  let sEnv = SenderEnv { .. }
   pure (fEnv, tEnv, sEnv)
-    where
-      logLevel' "debug" = pure Debug
-      logLevel' "info"  = pure Info
-      logLevel' "warning" = pure Warning
-      logLevel' "error"   = pure Error
-      logLevel' _ = putStrLn "[Error] Unknown log level was specified in config file"
-        >> error (Text.unpack $ ll <> " is unknown log level")

@@ -1,10 +1,12 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Logger where
 
 import           Control.Monad.Reader
+import           Data.Aeson           (FromJSON (..), withText)
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import qualified Data.Text.IO         as T
@@ -17,6 +19,15 @@ data LogLevel
   | Warning  -- ^ Something is probably wrong, and we should investigate.
   | Error    -- ^ Something is wrong and immediate action is required.
   deriving (Eq, Ord, Show)
+
+
+instance FromJSON LogLevel where
+  parseJSON = withText "LogLevel" $ \case
+    "debug"   -> pure Debug
+    "info"    -> pure Info
+    "warning" -> pure Warning
+    "error"   -> pure Error
+    _         -> fail "Unknown log level"
 
 
 class Logger m where

@@ -14,6 +14,7 @@ import           Control.Concurrent.STM.TVar   (TVar, modifyTVar', readTVarIO)
 import           Control.Monad.IO.Class        (MonadIO, liftIO)
 import           Control.Monad.Reader
 import           Control.Monad.STM             (atomically)
+import           Data.Aeson
 import           Data.Map.Strict               (Map)
 import qualified Data.Map.Strict               as Map
 import           Data.Text                     (Text)
@@ -53,8 +54,7 @@ class (Monad m) => HasUpdateQueue m where
 
   pushUpdate :: Update m -> m ()
   default pushUpdate :: (HasUpdQueueSTM m) => Update m -> m ()
-  pushUpdate msg = getUpdQueue >>= \q ->
-    liftIO $ atomically $ writeTQueue q msg
+  pushUpdate msg = getUpdQueue >>= \q -> liftIO $ atomically $ writeTQueue q msg
 
 
 class (MonadIO m) => HasMsgQueueSTM m where
@@ -120,6 +120,10 @@ type ChatId = Integer
 
 
 newtype Token = Token { extractToken :: Text }
+
+
+instance FromJSON Token where
+  parseJSON = withText "Token" (pure . Token)
 
 
 loopBot :: (Runnable m s) => m a -> s -> IO ()

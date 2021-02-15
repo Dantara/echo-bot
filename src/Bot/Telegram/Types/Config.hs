@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 
 module Bot.Telegram.Types.Config where
 
 import           Bot
-import           Bot.Telegram.Fetcher          (FetcherEnv (FetcherEnv))
-import           Bot.Telegram.Sender           (SenderEnv (SenderEnv))
-import           Bot.Telegram.Translator       (TranslatorEnv (TranslatorEnv))
+import           Bot.Telegram.Fetcher          (FetcherEnv (..))
+import           Bot.Telegram.Sender           (SenderEnv (..))
+import           Bot.Telegram.Translator       (TranslatorEnv (..))
 import           Control.Concurrent            (myThreadId)
 import           Control.Concurrent.STM.TQueue
 import           Control.Concurrent.STM.TVar
@@ -19,11 +20,11 @@ import           Logger
 
 
 data TelegramConfig = TelegramConfig
-  { token             :: Text
-  , helpMessage       :: Text
+  { token             :: Token
+  , helpMsg           :: Text
   , defaultReps       :: Int
   , repsQuestion      :: Text
-  , logLevel          :: Text
+  , logLevel          :: LogLevel
   , fetcherDelay      :: Int
   , translatorDelay   :: Int
   , senderDelay       :: Int
@@ -49,22 +50,11 @@ instance FromJSON TelegramConfig where
 
 
 configToEnvs :: TelegramConfig -> IO (FetcherEnv, TranslatorEnv, SenderEnv)
-configToEnvs (TelegramConfig t hm dr rq ll fd td sd _ _ _) = do
+configToEnvs TelegramConfig {..} = do
   offset <- newTVarIO 0
-  uQueue <- newTQueueIO
-  mQueue <- newTQueueIO
-  repsAmount <- newTVarIO Map.empty
-  repsCalled <- newTVarIO Set.empty
-  threadId <- myThreadId
-  ll' <- logLevel' ll
-  let fEnv = FetcherEnv offset (Token t) ll' fd threadId uQueue
-  let tEnv = TranslatorEnv uQueue mQueue ll' hm repsAmount dr repsCalled rq td
-  let sEnv = SenderEnv (Token t) ll' threadId mQueue repsAmount dr sd
-  pure (fEnv, tEnv, sEnv)
-    where
-      logLevel' "debug" = pure Debug
-      logLevel' "info"  = pure Info
-      logLevel' "warning" = pure Warning
-      logLevel' "error"   = pure Error
-      logLevel' _ = putStrLn "[Error] Unknown log level was specified in config file"
-        >> error (Text.unpack $ ll <> " is unknown log level")
+  tUpdates <- newTQueueIO
+  tMessages <- newTQueueIO
+  repetitions <- newTVarIO Map.empty
+  repsCommandCalled <- newTVarIO Set.empty
+  mainThreadId <- myThreadId
+  pure (FetcherEnv {..}, TranslatorEnv {..}, SenderEnv {..})
