@@ -23,10 +23,12 @@ serializeAttachments = Text.pack . foldMap ((<> ",") <$> serAttachment)
     serAttachment (Photo fi)        = "photo" <> serFileInfo fi
     serAttachment (Video fi)        = "video" <> serFileInfo fi
     serAttachment (Audio fi)        = "audio" <> serFileInfo fi
+    serAttachment (AudioMsg fi)     = "doc" <> serFileInfo fi
     serAttachment (Document fi)     = "doc" <> serFileInfo fi
     serAttachment (Wall fi)         = "wall" <> serFileInfo fi
     serAttachment (Market fi)       = "market" <> serFileInfo fi
     serAttachment (Poll fi)         = "poll" <> serFileInfo fi
+    serAttachment (Sticker _)       = ""
     serAttachment UnknownAttachment = ""
     serFileInfo (FileInfo mid oid mak)
       = show oid

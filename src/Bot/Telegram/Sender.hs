@@ -131,13 +131,3 @@ instance MonadSleep SenderM where
 
 instance Runnable SenderM SenderEnv where
   runBot app = runReaderT (unwrapSenderM app)
-
-
-runSender :: SenderM a -> SenderEnv -> IO a
-runSender app = runReaderT (unwrapSenderM app)
-
-
-loopSender :: SenderM a -> SenderEnv -> IO ()
-loopSender app env = void $ forkFinally
-  (forever $ runSender app env)
-  (either (const $ myThreadId >>= killThread) (const $ pure ()))

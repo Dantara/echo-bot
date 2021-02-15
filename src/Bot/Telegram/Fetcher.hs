@@ -104,13 +104,3 @@ instance MonadSleep FetcherM where
 
 instance Runnable FetcherM FetcherEnv where
   runBot app = runReaderT (unwrapFetcherM app)
-
-
-runFetcher :: FetcherM a -> FetcherEnv -> IO a
-runFetcher app = runReaderT (unwrapFetcherM app)
-
-
-loopFetcher :: FetcherM a -> FetcherEnv -> IO ()
-loopFetcher app env = void $ forkFinally
-  (forever $ runFetcher app env)
-  (either (const $ myThreadId >>= killThread) (const $ pure ()))

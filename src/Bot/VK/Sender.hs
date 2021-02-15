@@ -1,5 +1,6 @@
 {-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
@@ -10,6 +11,7 @@ module Bot.VK.Sender where
 import           Bot
 import           Bot.VK.Sender.Keyboard        (getKeyboard)
 import           Bot.VK.Types.Msg
+import           Bot.VK.Types.Shared           (Attachment (..))
 import           Control.Concurrent            (ThreadId, forkFinally,
                                                 killThread, myThreadId,
                                                 threadDelay, throwTo)
@@ -24,6 +26,7 @@ import           Control.Monad.Reader          (MonadReader, ReaderT, asks,
 import           Control.Monad.STM             (atomically)
 import           Data.Map.Strict               (Map)
 import qualified Data.Map.Strict               as Map
+import           Data.Maybe                    (mapMaybe)
 import           Data.Text                     (Text)
 import qualified Data.Text                     as Text
 import           Logger
@@ -62,6 +65,11 @@ instance MonadSender SenderM where
                  , "random_id" =: randomId msg
                  , "attachment" =: serializeAttachments (attachments msg)
                  , "v" =: apiV
+                 ] <>
+                 [ "sticker_id" =: s
+                 | s <- mapMaybe
+                   (\case (Sticker x) -> Just x; _ -> Nothing)
+                   (attachments msg)
                  ] <>
                  [ "keyboard" =: ($(getKeyboard) :: Text)
                  | command msg == Just RepeatCommand

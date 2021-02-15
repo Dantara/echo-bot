@@ -175,13 +175,3 @@ receivedMsgToMsg (ReceivedMsg ci _ _ _ _ _ _ _ _ _ _ _ _ _ (Just l))
 
 receivedMsgToMsg (ReceivedMsg ci i _ _ _ _ _ _ _ _ _ _ _ _ _)
   = pure $ Msg ci (UnsupportedContent i)
-
-
-runTranslator :: TranslatorM a -> TranslatorEnv -> IO a
-runTranslator app = runReaderT (unwrapTranslatorM app)
-
-
-loopTranslator :: TranslatorM a -> TranslatorEnv -> IO ()
-loopTranslator app env = void $ forkFinally
-  (forever $ runTranslator app env)
-  (either (const $ myThreadId >>= killThread) (const $ pure ()))

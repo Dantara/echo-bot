@@ -10,10 +10,12 @@ data Attachment
   = Photo FileInfo
   | Video FileInfo
   | Audio FileInfo
+  | AudioMsg FileInfo
   | Document FileInfo
   | Wall FileInfo
   | Market FileInfo
   | Poll FileInfo
+  | Sticker Integer
   | UnknownAttachment
   deriving (Eq, Show)
 
@@ -35,6 +37,8 @@ instance FromJSON Attachment where
         Video <$> (a .: "video")
       "audio" ->
         Audio <$> (a .: "audio")
+      "audio_message" ->
+        AudioMsg <$> (a .: "audio_message")
       "doc" ->
         Document <$> (a .: "doc")
       "wall" ->
@@ -43,6 +47,8 @@ instance FromJSON Attachment where
         Market <$> (a .: "market")
       "poll" ->
         Poll <$> (a .: "poll")
+      "sticker" ->
+        Sticker <$> (a .: "sticker" >>= (.: "sticker_id"))
       _ ->
         pure UnknownAttachment
 
