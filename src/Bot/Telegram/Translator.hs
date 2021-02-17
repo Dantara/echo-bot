@@ -6,26 +6,27 @@
 module Bot.Telegram.Translator where
 
 import           Bot
+import           Bot.Shared.RepeatCommandHandler
 import           Bot.Telegram.Types.Msg
 import           Bot.Telegram.Types.Updates
-import           Control.Concurrent            (forkFinally, killThread,
-                                                myThreadId, threadDelay)
-import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
-                                                writeTQueue)
-import           Control.Concurrent.STM.TVar   (TVar, modifyTVar', readTVarIO)
-import           Control.Monad                 (forever, void)
-import           Control.Monad.IO.Class        (MonadIO, liftIO)
-import           Control.Monad.Reader          (MonadReader, ReaderT, asks,
-                                                runReaderT)
-import           Control.Monad.STM             (atomically)
-import           Data.Map.Strict               (Map)
-import qualified Data.Map.Strict               as Map
-import           Data.Set                      (Set)
-import qualified Data.Set                      as Set
-import           Data.Text                     (Text)
-import qualified Data.Text                     as Text
+import           Control.Concurrent              (forkFinally, killThread,
+                                                  myThreadId, threadDelay)
+import           Control.Concurrent.STM.TQueue   (TQueue, tryReadTQueue,
+                                                  writeTQueue)
+import           Control.Concurrent.STM.TVar     (TVar, modifyTVar', readTVarIO)
+import           Control.Monad                   (forever, void)
+import           Control.Monad.IO.Class          (MonadIO, liftIO)
+import           Control.Monad.Reader            (MonadReader, ReaderT, asks,
+                                                  runReaderT)
+import           Control.Monad.STM               (atomically)
+import           Data.Map.Strict                 (Map)
+import qualified Data.Map.Strict                 as Map
+import           Data.Set                        (Set)
+import qualified Data.Set                        as Set
+import           Data.Text                       (Text)
+import qualified Data.Text                       as Text
 import           Logger
-import           Text.Read                     (readMaybe)
+import           Text.Read                       (readMaybe)
 
 
 newtype TranslatorM a = TranslatorM { unwrapTranslatorM :: ReaderT TranslatorEnv IO a }
@@ -86,34 +87,21 @@ instance MonadSleep TranslatorM where
   sleep = liftIO . threadDelay =<< asks translatorDelay
 
 
+instance HasRepCallsSetSTM TranslatorM where
+  getTVarRepCallsSet = asks repsCommandCalled
+
+
+instance HasRepeatCalls TranslatorM
+
+
 instance RepetitionsHandler TranslatorM where
-  handleRepeatCommand msg@(Msg ci (CommandContent RepeatCommand _)) = do
-    rs <- asks repsCommandCalled
-    liftIO $ atomically $ modifyTVar' rs (Set.insert ci)
-    logInfo "User wants to update repetitions amount"
-    pure msg
+  handleRepeatCommand msg@(Msg ci (CommandContent RepeatCommand _))
+    = handleMsgWithRepeatCommand msg ci
 
-  handleRepeatCommand msg@(Msg ci (TextContent t)) = do
-    trs <- asks repsCommandCalled
-    rs <- liftIO $ readTVarIO trs
-
-    case (Set.member ci rs, readMaybe $ Text.unpack t) of
-      (True, Just i) -> do
-        if i > 0 then do
-          updateRepetitions i ci
-          liftIO $ atomically $ modifyTVar' trs (Set.delete ci)
-          logInfo "User repetitions was updated"
-          pure $ Msg ci (TextContent "Repetitions amount was updated!")
-        else do
-          logWarning "User supplied wrong number of repetitions"
-          let t' = "Wrong number of repetitions.\n"
-                <> "Number should lie between 1 and 5."
-          pure $ Msg ci (TextContent t')
-      (True, Nothing) -> do
-          logWarning "User supplied malformed number of repetitions"
-          pure msg
-      (False, _) ->
-        pure msg
+  handleRepeatCommand msg@(Msg ci (TextContent t))
+    = handleMsgWithText msg ci t msgProd
+    where
+      msgProd t' = Msg ci (TextContent t')
 
   handleRepeatCommand msg = pure msg
 

@@ -15,8 +15,11 @@ import           Control.Monad.IO.Class        (MonadIO, liftIO)
 import           Control.Monad.Reader
 import           Control.Monad.STM             (atomically)
 import           Data.Aeson
+import           Data.Functor                  ((<&>))
 import           Data.Map.Strict               (Map)
 import qualified Data.Map.Strict               as Map
+import           Data.Set                      (Set)
+import qualified Data.Set                      as Set
 import           Data.Text                     (Text)
 import           Logger
 
@@ -94,6 +97,29 @@ class (Monad m) => HasRepetitions m where
   updateRepetitions i ci = do
     rs <- getTVarMapReps
     liftIO $ atomically $ modifyTVar' rs (Map.insert ci i)
+
+
+class (MonadIO m) => HasRepCallsSetSTM m where
+  getTVarRepCallsSet :: m (TVar (Set ChatId))
+
+
+class (Monad m) => HasRepeatCalls m where
+  addRepCall :: ChatId -> m ()
+  default addRepCall :: (HasRepCallsSetSTM m) => ChatId -> m ()
+  addRepCall ci = do
+    rs <- getTVarRepCallsSet
+    liftIO $ atomically $ modifyTVar' rs (Set.insert ci)
+
+  removeRepCall :: ChatId -> m ()
+  default removeRepCall :: (HasRepCallsSetSTM m) => ChatId -> m ()
+  removeRepCall ci = do
+    rs <- getTVarRepCallsSet
+    liftIO $ atomically $ modifyTVar' rs (Set.delete ci)
+
+  wasRepCalled :: ChatId -> m Bool
+  default wasRepCalled :: (HasRepCallsSetSTM m) => ChatId -> m Bool
+  wasRepCalled ci = Set.member ci
+    <$> (liftIO . readTVarIO =<< getTVarRepCallsSet)
 
 
 class (HasRepetitions m, Logger m) => RepetitionsHandler m where

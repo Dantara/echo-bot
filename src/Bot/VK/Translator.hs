@@ -6,29 +6,30 @@
 module Bot.VK.Translator where
 
 import           Bot
+import           Bot.Shared.RepeatCommandHandler
 import           Bot.VK.Types.Msg
-import           Bot.VK.Types.Shared           (Attachment (..))
+import           Bot.VK.Types.Shared             (Attachment (..))
 import           Bot.VK.Types.Updates
-import           Control.Concurrent            (forkFinally, killThread,
-                                                myThreadId, threadDelay)
-import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
-                                                writeTQueue)
-import           Control.Concurrent.STM.TVar   (TVar, modifyTVar', readTVarIO)
-import           Control.Monad                 (forever, void)
-import           Control.Monad.IO.Class        (MonadIO, liftIO)
-import           Control.Monad.Reader          (MonadReader, ReaderT, asks,
-                                                runReaderT)
-import           Control.Monad.STM             (atomically)
-import           Data.Map.Strict               (Map)
-import qualified Data.Map.Strict               as Map
-import           Data.Set                      (Set)
-import qualified Data.Set                      as Set
-import           Data.Text                     (Text)
-import qualified Data.Text                     as Text
+import           Control.Concurrent              (forkFinally, killThread,
+                                                  myThreadId, threadDelay)
+import           Control.Concurrent.STM.TQueue   (TQueue, tryReadTQueue,
+                                                  writeTQueue)
+import           Control.Concurrent.STM.TVar     (TVar, modifyTVar', readTVarIO)
+import           Control.Monad                   (forever, void)
+import           Control.Monad.IO.Class          (MonadIO, liftIO)
+import           Control.Monad.Reader            (MonadReader, ReaderT, asks,
+                                                  runReaderT)
+import           Control.Monad.STM               (atomically)
+import           Data.Map.Strict                 (Map)
+import qualified Data.Map.Strict                 as Map
+import           Data.Set                        (Set)
+import qualified Data.Set                        as Set
+import           Data.Text                       (Text)
+import qualified Data.Text                       as Text
 import           Logger
 import           System.Random.TF
 import           System.Random.TF.Gen
-import           Text.Read                     (readMaybe)
+import           Text.Read                       (readMaybe)
 
 
 newtype TranslatorM a = TranslatorM { unwrapTranslatorM :: ReaderT TranslatorEnv IO a }
@@ -84,34 +85,21 @@ instance MonadTranslator TranslatorM where
         else pure ()
 
 
+instance HasRepCallsSetSTM TranslatorM where
+  getTVarRepCallsSet = asks repsCommandCalled
+
+
+instance HasRepeatCalls TranslatorM
+
+
 instance RepetitionsHandler TranslatorM where
-  handleRepeatCommand msg@(Msg ci _ _ _ (Just RepeatCommand)) = do
-    rs <- asks repsCommandCalled
-    liftIO $ atomically $ modifyTVar' rs (Set.insert ci)
-    logInfo "User wants to update repetitions amount"
-    pure msg
+  handleRepeatCommand msg@(Msg ci _ _ _ (Just RepeatCommand))
+    = handleMsgWithRepeatCommand msg ci
 
-  handleRepeatCommand msg@(Msg ci ri t _ _) = do
-    trs <- asks repsCommandCalled
-    rs <- liftIO $ readTVarIO trs
-
-    case (Set.member ci rs, readMaybe $ Text.unpack t) of
-      (True, Just i) -> do
-        if i > 0 then do
-          updateRepetitions i ci
-          liftIO $ atomically $ modifyTVar' trs (Set.delete ci)
-          logInfo "User repetitions was updated"
-          pure $ Msg ci ri "Repetitions amount was updated!" [] Nothing
-        else do
-          logWarning "User supplied wrong number of repetitions"
-          let t' = "Wrong number of repetitions.\n"
-                <> "Number should lie between 1 and 5."
-          pure $ Msg ci ri t' [] Nothing
-      (True, Nothing) -> do
-          logWarning "User supplied malformed number of repetitions"
-          pure msg
-      (False, _) ->
-        pure msg
+  handleRepeatCommand msg@(Msg ci ri t _ _)
+    = handleMsgWithText msg ci t msgProd
+    where
+      msgProd t' = Msg ci ri t' [] Nothing
 
   repeatMessage msg = do
     rs <- getRepetitions $ userId msg
