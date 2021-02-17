@@ -9,6 +9,7 @@
 module Bot.VK.Sender where
 
 import           Bot
+import           Bot.Shared
 import           Bot.VK.Sender.Keyboard        (getKeyboard)
 import           Bot.VK.Types.Msg
 import           Bot.VK.Types.Shared           (Attachment (..))
@@ -107,12 +108,14 @@ instance Logger SenderM where
   getLogLevel = asks logLevel
 
 
+instance HasMainThreadId SenderM where
+  getMainThreadId = asks mainThreadId
+
+
 instance MonadHttp SenderM where
-  handleHttpException e = do
-    logError "Error occured while sending VK message:"
-    tId <- asks mainThreadId
-    liftIO $ throwTo tId e
-    liftIO $ throwIO e
+  handleHttpException =
+    defaultHttpExceptionHander
+      "Error occured while sending VK message"
 
   getHttpConfig = pure defaultHttpConfig
 

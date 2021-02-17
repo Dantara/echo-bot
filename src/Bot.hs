@@ -6,8 +6,8 @@
 
 module Bot where
 
-import           Control.Concurrent            (forkFinally, killThread,
-                                                myThreadId)
+import           Control.Concurrent            (ThreadId, forkFinally,
+                                                killThread, myThreadId)
 import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
                                                 writeTQueue)
 import           Control.Concurrent.STM.TVar   (TVar, modifyTVar', readTVarIO)
@@ -104,6 +104,10 @@ class (HasRepetitions m, Logger m) => RepetitionsHandler m where
 
 class (Monad m) => MonadSleep m where
   sleep :: m ()
+
+
+class (Monad m) => HasMainThreadId m where
+  getMainThreadId :: m ThreadId
 
 
 class (MonadIO m) => Runnable m s | m -> s where

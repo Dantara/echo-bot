@@ -8,6 +8,7 @@
 module Bot.VK.Fetcher where
 
 import           Bot
+import           Bot.Shared
 import           Bot.VK.Fetcher.LongPollServer
 import           Bot.VK.Types.Updates
 import           Control.Concurrent            (ThreadId, forkFinally,
@@ -94,12 +95,14 @@ instance Logger FetcherM where
   getLogLevel = asks logLevel
 
 
+instance HasMainThreadId FetcherM where
+  getMainThreadId = asks mainThreadId
+
+
 instance MonadHttp FetcherM where
-  handleHttpException e = do
-    logError "Error occured while fetching VK updates:"
-    tId <- asks mainThreadId
-    liftIO $ throwTo tId e
-    liftIO $ throwIO e
+  handleHttpException =
+    defaultHttpExceptionHander
+      "Error occured while fetching VK updates"
 
   getHttpConfig = pure defaultHttpConfig
 

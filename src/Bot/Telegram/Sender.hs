@@ -7,6 +7,7 @@
 module Bot.Telegram.Sender where
 
 import           Bot
+import           Bot.Shared
 import           Bot.Telegram.Types.Msg        (Msg (..), MsgContent (..))
 import           Control.Concurrent            (ThreadId, forkFinally,
                                                 killThread, myThreadId,
@@ -115,12 +116,14 @@ instance Logger SenderM where
   getLogLevel = asks logLevel
 
 
+instance HasMainThreadId SenderM where
+  getMainThreadId = asks mainThreadId
+
+
 instance MonadHttp SenderM where
-  handleHttpException e = do
-    logError "Error occured while sending Telegram message:"
-    tId <- asks mainThreadId
-    liftIO $ throwTo tId e
-    liftIO $ throwIO e
+  handleHttpException =
+    defaultHttpExceptionHander
+      "Error occured while sending Telegram message"
 
   getHttpConfig = pure defaultHttpConfig
 

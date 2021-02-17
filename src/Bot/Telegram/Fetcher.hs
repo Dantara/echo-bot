@@ -8,6 +8,7 @@
 module Bot.Telegram.Fetcher where
 
 import           Bot
+import           Bot.Shared
 import           Bot.Telegram.Types.Updates
 import           Control.Concurrent            (ThreadId, forkFinally,
                                                 killThread, myThreadId,
@@ -81,12 +82,14 @@ instance Logger FetcherM where
   getLogLevel = asks logLevel
 
 
+instance HasMainThreadId FetcherM where
+  getMainThreadId = asks mainThreadId
+
+
 instance MonadHttp FetcherM where
-  handleHttpException e = do
-    logError "Error occured while fetching Telegram updates:"
-    tId <- asks mainThreadId
-    liftIO $ throwTo tId e
-    liftIO $ throwIO e
+  handleHttpException =
+    defaultHttpExceptionHander
+      "Error occured while fetching Telegram updates"
 
   getHttpConfig = pure defaultHttpConfig
 
