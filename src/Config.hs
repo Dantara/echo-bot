@@ -15,7 +15,7 @@ defaultConfigLocation = "bot.config"
 data Config = Config
   { telegramConfigs :: [TelegramConfig]
   , vkConfigs       :: [VKConfig]
-  }
+  } deriving (Eq, Show)
 
 
 instance FromJSON Config where

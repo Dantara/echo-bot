@@ -150,6 +150,7 @@ type ChatId = Integer
 
 
 newtype Token = Token { extractToken :: Text }
+  deriving (Eq, Show)
 
 
 instance FromJSON Token where

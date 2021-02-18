@@ -37,7 +37,7 @@ data VKConfig = VKConfig
   , fetchersAmount    :: Int
   , translatorsAmount :: Int
   , sendersAmount     :: Int
-  }
+  } deriving (Eq, Show)
 
 
 instance FromJSON VKConfig where

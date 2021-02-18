@@ -31,7 +31,7 @@ data TelegramConfig = TelegramConfig
   , fetchersAmount    :: Int
   , translatorsAmount :: Int
   , sendersAmount     :: Int
-  }
+  } deriving (Eq, Show)
 
 
 instance FromJSON TelegramConfig where
