@@ -32,7 +32,7 @@ handleMsgWithText msg ci t msgProd = do
 
   case (wasCalled, readMaybe $ Text.unpack t) of
     (True, Just i) -> do
-      if i > 0
+      if i >= 1 && i <= 5
         then do
           updateRepetitions i ci
           removeRepCall ci
@@ -40,8 +40,7 @@ handleMsgWithText msg ci t msgProd = do
           pure $ msgProd "Repetitions amount was updated!"
         else do
           logWarning "User supplied wrong number of repetitions"
-          let t' =
-                "Wrong number of repetitions.\n"
+          let t' = "Wrong number of repetitions.\n"
                   <> "Number should lie between 1 and 5."
           pure $ msgProd t'
     (True, Nothing) -> do
