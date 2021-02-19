@@ -20,7 +20,7 @@ import           Test.Tasty.HUnit
 test_config :: TestTree
 test_config =
   testGroup
-    "Config test"
+    "Config tests"
     [ testCase "Sample config parse" $
         decode (BLC.pack $(getSampleConfig)) @?= Just parsedConfig
     ]
@@ -28,7 +28,8 @@ test_config =
     parsedConfig = Config
       { telegramConfigs = [
           TelegramConfig
-            { TG.token = Token { extractToken = "1470862909:AAGZF-lhbKci7azP-NHsxiTCdGJ4flHlTDo"}
+            { TG.token = Token
+              { extractToken = "1470862909:AAGZF-lhbKci7azP-NHsxiTCdGJ4flHlTDo"}
             , TG.helpMsg = "Arbitrary help message"
             , TG.defaultReps = 1
             , TG.repsQuestion = "What amount of repetitions do you prefer?"

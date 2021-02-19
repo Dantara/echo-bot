@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3ba8747b97178317e5033e9c248a59c770d49df69201eb4268739af9c759b6ee
+-- hash: af28d614a1c97051e14394b2bd8e9a1a4e0577d016c5ceddd8f5ad902a8fa465
 
 name:           echo-bot
 version:        0.1.0.0
@@ -97,6 +97,8 @@ test-suite echo-bot-test
   main-is: Spec.hs
   other-modules:
       Bot.Shared.RepeatCommandHandlerSpec
+      Bot.VK.Fetcher.LongPollServerSpec
+      Bot.VK.Fetcher.LongPollServerSpec.SampleLongPollServer
       ConfigSpec
       ConfigSpec.SampleBotConfig
       HelpersSpec

@@ -5,19 +5,21 @@
 module Bot.VK.Fetcher.LongPollServer where
 
 import           Data.Aeson
-import           Data.Aeson.Types (Parser)
-import           Data.List        (foldl')
-import           Data.Text        (Text)
-import qualified Data.Text        as Text
+import           Data.Aeson.Types   (Parser)
+import           Data.List          (foldl')
+import           Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NE
+import           Data.Text          (Text)
+import qualified Data.Text          as Text
 import           Network.HTTP.Req
-import           Text.Read        (readMaybe)
+import           Text.Read          (readMaybe)
 
 
 data LongPollServer = LongPollServer
   { key        :: Text
   , serverAddr :: Url 'Https
   , ts         :: Integer
-  } deriving (Show)
+  } deriving (Eq, Show)
 
 
 instance FromJSON LongPollServer where
@@ -46,8 +48,8 @@ textToUrl t
     getDomain u = case Text.takeWhile (/='/') u of
       "" -> callFail
       d  -> pure d
-    addPath u b = foldl' (/:) b . tail
+    addPath u b = foldl' (/:) b . NE.tail
       <$> isEmpty (Text.splitOn "/" $ Text.dropWhile (/='/') u)
-    isEmpty [] = callFail
-    isEmpty x  = pure x
+    isEmpty []     = callFail
+    isEmpty (x:xs) = pure (x :| xs)
     callFail = fail $ "Url is malformed: " <> Text.unpack t
