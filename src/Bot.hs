@@ -12,41 +12,63 @@ import           Control.Concurrent.STM.TQueue (TQueue, tryReadTQueue,
                                                 writeTQueue)
 import           Control.Concurrent.STM.TVar   (TVar, modifyTVar', readTVarIO)
 import           Control.Monad.IO.Class        (MonadIO, liftIO)
-import           Control.Monad.Reader
+import           Control.Monad.Reader          (MonadIO (..), forever, void)
 import           Control.Monad.STM             (atomically)
-import           Data.Aeson
+import           Data.Aeson                    (FromJSON (parseJSON), withText)
 import           Data.Functor                  ((<&>))
 import           Data.Map.Strict               (Map)
 import qualified Data.Map.Strict               as Map
 import           Data.Set                      (Set)
 import qualified Data.Set                      as Set
 import           Data.Text                     (Text)
-import           Logger
+import           Logger                        (Logger)
 
 
+-- | The main type class for fetcher
 class (Monad m, Logger m) => MonadFetcher m where
   fetchUpdates :: m [Update m]
   offsetOfUpdate :: Update m -> m Integer
 
 
+-- | The main type class for translator
 class (Monad m, Logger m) => MonadTranslator m where
   updateToMessage :: Update m -> m (Message m)
 
 
+-- | The main type class for sender
 class (Monad m, Logger m) => MonadSender m where
   sendMessage :: Message m -> m ()
   chatIdOfMessage :: Message m -> m ChatId
 
 
+-- | Contains functionalities for repetitions handling
+class (HasRepetitions m, Logger m) => RepetitionsHandler m where
+  handleRepeatCommand :: Message m -> m (Message m)
+
+  repeatMessage :: Message m -> m [Message m]
+
+
+-- | Provides an ability to suspend execution of part of application
+class (Monad m) => MonadSleep m where
+  sleep :: m ()
+
+
+-- | Type class which helps to run cocrete part of the program.
+class (MonadIO m) => Runnable m s | m -> s where
+  runBot :: m a -> s -> IO a
+
+
+-- * This section provides slightly modified Has* type classes.
+-- They are not relies on reader monad therefore its easier to test them.
+
+
+-- | Offset / ts of last updates
 class (Monad m) => HasOffset m where
   getOffset :: m Integer
   updateOffset :: Integer -> m ()
 
 
-class (MonadIO m) => HasUpdQueueSTM m where
-  getUpdQueue :: m (TQueue (Update m))
-
-
+-- | Type class for updates queue
 class (Monad m) => HasUpdateQueue m where
   type Update m :: *
 
@@ -60,10 +82,12 @@ class (Monad m) => HasUpdateQueue m where
   pushUpdate msg = getUpdQueue >>= \q -> liftIO $ atomically $ writeTQueue q msg
 
 
-class (MonadIO m) => HasMsgQueueSTM m where
-  getMsgQueue :: m (TQueue (Message m))
+-- | Helper type class for default UpdateQueue implementation.
+class (MonadIO m) => HasUpdQueueSTM m where
+  getUpdQueue :: m (TQueue (Update m))
 
 
+-- | Type class for messages queue
 class (Monad m) => HasMessageQueue m where
   type Message m :: *
 
@@ -78,10 +102,12 @@ class (Monad m) => HasMessageQueue m where
     liftIO $ atomically $ writeTQueue q msg
 
 
-class (MonadIO m) => HasMapRepsSTM m where
-  getTVarMapReps :: m (TVar (Map ChatId Int))
+-- | Helper type class for default MessageQueue implementation.
+class (MonadIO m) => HasMsgQueueSTM m where
+  getMsgQueue :: m (TQueue (Message m))
 
 
+-- | Provides an ability to get / update repetitions for concrete user.
 class (Monad m) => HasRepetitions m where
   getDefaultRepetitions :: m Int
 
@@ -99,10 +125,12 @@ class (Monad m) => HasRepetitions m where
     liftIO $ atomically $ modifyTVar' rs (Map.insert ci i)
 
 
-class (MonadIO m) => HasRepCallsSetSTM m where
-  getTVarRepCallsSet :: m (TVar (Set ChatId))
+-- | Helper type class for default implemention of HasRepetititons
+class (MonadIO m) => HasMapRepsSTM m where
+  getTVarMapReps :: m (TVar (Map ChatId Int))
 
 
+-- | Tracks which user called /repeat command
 class (Monad m) => HasRepeatCalls m where
   addRepCall :: ChatId -> m ()
   default addRepCall :: (HasRepCallsSetSTM m) => ChatId -> m ()
@@ -122,22 +150,19 @@ class (Monad m) => HasRepeatCalls m where
     <$> (liftIO . readTVarIO =<< getTVarRepCallsSet)
 
 
-class (HasRepetitions m, Logger m) => RepetitionsHandler m where
-  handleRepeatCommand :: Message m -> m (Message m)
-
-  repeatMessage :: Message m -> m [Message m]
-
-
-class (Monad m) => MonadSleep m where
-  sleep :: m ()
+-- | Helper type class for default implemention of HasRepeatCalls
+class (MonadIO m) => HasRepCallsSetSTM m where
+  getTVarRepCallsSet :: m (TVar (Set ChatId))
 
 
+-- | Provides an ability to fetch ThreadId of the main thread.
+-- It is useful for killing the app in case of exception.
 class (Monad m) => HasMainThreadId m where
   getMainThreadId :: m ThreadId
 
 
-class (MonadIO m) => Runnable m s | m -> s where
-  runBot :: m a -> s -> IO a
+
+-- * This section contains data types which used among the whole app
 
 
 data Command
@@ -157,6 +182,7 @@ instance FromJSON Token where
   parseJSON = withText "Token" (pure . Token)
 
 
+-- | Loops concreate part of business logic in separete thread
 loopBot :: (Runnable m s) => m a -> s -> IO ()
 loopBot app env = void $ forkFinally
   (forever $ runBot app env)

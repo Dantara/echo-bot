@@ -2,8 +2,8 @@
 
 module Bot.VK.Types.Updates where
 
-import           Bot.VK.Types.Shared
-import           Data.Aeson
+import           Bot.VK.Types.Shared (Attachment)
+import           Data.Aeson          (FromJSON (parseJSON), withObject, (.:))
 import           Data.Aeson.Types    (Parser)
 import           Data.Text           (Text)
 import qualified Data.Text           as Text

@@ -112,3 +112,26 @@ to run each of them in separate thread (their connection is provided via `STM Qu
 This architecture provides an ability of not linear system scaling:
 
 ![](./docs/logic-scaled.png "Logic scaled")
+
+### Type classes
+
+The main set of type classes and and their default implementation is placed into `Bot.hs` file.
+
+### Config
+
+The main logic for config reading is placed into `Config.hs` file. 
+Files called `Bot/Telegram/Types/Config.hs` and `Bot/VK/Types/Config.hs`
+contains parsing functions for these concrete config parts.
+
+### Logger
+
+The logger logic and data types are placed into `Logger.hs` file. 
+Logger also uses typeclass approach to provide its functionality.
+There are to default loggers implementation STD logger 
+(which prints log messages into console) and Identity one
+(which mocks all log messages).
+
+### Interpreters
+
+Interpreters or implementations for concrete messager are placed into `Bot/Telegram`
+and `Bot/VK` folders.

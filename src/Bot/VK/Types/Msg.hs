@@ -2,8 +2,8 @@
 
 module Bot.VK.Types.Msg where
 
-import           Bot
-import           Bot.VK.Types.Shared
+import           Bot                 (Command)
+import           Bot.VK.Types.Shared (Attachment (..), FileInfo (FileInfo))
 import           Data.Text           (Text)
 import qualified Data.Text           as Text
 

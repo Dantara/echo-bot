@@ -8,9 +8,9 @@
 module Bot.VK.Fetcher where
 
 import           Bot
-import           Bot.Shared
-import           Bot.VK.Fetcher.LongPollServer
-import           Bot.VK.Types.Updates
+import           Bot.Shared                    (defaultHttpExceptionHander)
+import           Bot.VK.Fetcher.LongPollServer (LongPollServer (key, serverAddr, ts))
+import           Bot.VK.Types.Updates          (Upd (updateId), updatesToUpds)
 import           Control.Concurrent            (ThreadId, forkFinally,
                                                 killThread, myThreadId,
                                                 threadDelay, throwTo)
@@ -25,8 +25,13 @@ import           Control.Monad.Reader          (MonadReader, ReaderT, asks,
 import           Control.Monad.STM             (atomically)
 import           Data.Functor                  ((<&>))
 import           Data.Text                     (Text)
-import           Logger
-import           Network.HTTP.Req
+import           Logger                        (LogLevel, Logger (getLogLevel),
+                                                logDebug)
+import           Network.HTTP.Req              (GET (GET), MonadHttp (..),
+                                                NoReqBody (NoReqBody),
+                                                defaultHttpConfig, https,
+                                                jsonResponse, req, responseBody,
+                                                (/:), (=:))
 
 
 newtype FetcherM a = FetcherM { unwrapFetcherM :: ReaderT FetcherEnv IO a }

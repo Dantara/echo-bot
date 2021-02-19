@@ -10,6 +10,7 @@ import           Data.Text              (Text)
 import           Logger                 (Logger, logError)
 import           Network.HTTP.Req       (HttpException)
 
+
 defaultHttpExceptionHander ::
   (MonadIO m, HasMainThreadId m, Logger m) =>
   Text ->

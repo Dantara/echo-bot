@@ -1,6 +1,6 @@
 module Helpers where
 
-import           Data.Char
+import           Data.Char (isLower, toLower)
 
 
 camelToSnakeCase :: String -> String
@@ -12,7 +12,8 @@ camelToSnakeCase (x:xs)
     (h, t) = span isLower (toLower x : xs)
 
 
-
+-- | Simple pure functional queue.
+-- Mostly used in tests.
 data Queue a = Queue [a] [a]
 
 emptyQueue :: Queue a

@@ -2,10 +2,12 @@
 
 module Bot.Shared.RepeatCommandHandler where
 
-import           Bot
+import           Bot       (ChatId, HasMessageQueue (Message),
+                            HasRepeatCalls (..),
+                            HasRepetitions (updateRepetitions))
 import           Data.Text (Text)
 import qualified Data.Text as Text
-import           Logger
+import           Logger    (Logger, logInfo, logWarning)
 import           Text.Read (readMaybe)
 
 

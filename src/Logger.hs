@@ -5,7 +5,8 @@
 
 module Logger where
 
-import           Control.Monad.Reader
+import           Control.Monad.Reader (Monad ((>>=)), MonadFail (fail),
+                                       MonadIO (..))
 import           Data.Aeson           (FromJSON (..), withText)
 import           Data.Text            (Text)
 import qualified Data.Text            as T

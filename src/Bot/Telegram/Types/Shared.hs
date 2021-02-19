@@ -4,10 +4,12 @@
 
 module Bot.Telegram.Types.Shared where
 
-import           Data.Aeson
+import           Data.Aeson   (FromJSON (parseJSON),
+                               Options (fieldLabelModifier), defaultOptions,
+                               genericParseJSON, withObject, (.:))
 import           Data.Char    (toLower)
 import           Data.Text    (Text)
-import           GHC.Generics
+import           GHC.Generics (Generic)
 import           Helpers      (camelToSnakeCase)
 
 

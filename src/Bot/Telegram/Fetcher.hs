@@ -8,8 +8,9 @@
 module Bot.Telegram.Fetcher where
 
 import           Bot
-import           Bot.Shared
-import           Bot.Telegram.Types.Updates
+import           Bot.Shared                    (defaultHttpExceptionHander)
+import           Bot.Telegram.Types.Updates    (Upd (updateId),
+                                                Updates (extractUpdates))
 import           Control.Concurrent            (ThreadId, forkFinally,
                                                 killThread, myThreadId,
                                                 threadDelay, throwTo)
@@ -22,9 +23,14 @@ import           Control.Monad.IO.Class        (MonadIO, liftIO)
 import           Control.Monad.Reader          (MonadReader, ReaderT, asks,
                                                 runReaderT)
 import           Control.Monad.STM             (atomically)
-import           Data.Aeson
-import           Logger
-import           Network.HTTP.Req
+import           Data.Aeson                    (KeyValue ((.=)), object)
+import           Logger                        (LogLevel, Logger (getLogLevel),
+                                                logDebug)
+import           Network.HTTP.Req              (MonadHttp (..), POST (POST),
+                                                ReqBodyJson (ReqBodyJson),
+                                                defaultHttpConfig, https,
+                                                jsonResponse, req, responseBody,
+                                                (/:))
 
 
 newtype FetcherM a = FetcherM { unwrapFetcherM :: ReaderT FetcherEnv IO a }

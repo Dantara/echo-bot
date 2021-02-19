@@ -3,22 +3,26 @@
 
 module Bot.VK.Types.Config where
 
-import           Bot
+import           Bot                           (Token)
 import           Bot.VK.Fetcher                (FetcherEnv (..))
 import           Bot.VK.Sender                 (SenderEnv (..))
 import           Bot.VK.Translator             (TranslatorEnv (..))
 import           Control.Concurrent            (myThreadId)
-import           Control.Concurrent.STM.TQueue
-import           Control.Concurrent.STM.TVar
+import           Control.Concurrent.STM.TQueue (newTQueueIO)
+import           Control.Concurrent.STM.TVar   (newTVarIO)
 import           Control.Exception             (throwIO, toException)
-import           Data.Aeson                    hiding (Error)
+import           Data.Aeson                    (FromJSON (parseJSON),
+                                                withObject, (.:))
 import qualified Data.Map.Strict               as Map
 import qualified Data.Set                      as Set
 import           Data.Text                     (Text)
 import qualified Data.Text                     as Text
-import           Logger
+import           Logger                        (LogLevel)
 
 
+-- | Api version is hard coded,
+-- because in any way we should change the code to support
+-- updated api version
 defaultApiVersion :: Text
 defaultApiVersion = "5.125"
 

@@ -7,7 +7,7 @@
 module Bot.Telegram.Sender where
 
 import           Bot
-import           Bot.Shared
+import           Bot.Shared                    (defaultHttpExceptionHander)
 import           Bot.Telegram.Types.Msg        (Msg (..), MsgContent (..))
 import           Control.Concurrent            (ThreadId, forkFinally,
                                                 killThread, myThreadId,
@@ -24,8 +24,12 @@ import           Control.Monad.STM             (atomically)
 import           Data.Map.Strict               (Map)
 import qualified Data.Map.Strict               as Map
 import           Data.Text                     (Text)
-import           Logger
-import           Network.HTTP.Req
+import           Logger                        (LogLevel, Logger (getLogLevel),
+                                                logDebug)
+import           Network.HTTP.Req              (MonadHttp (..), POST (POST),
+                                                ReqBodyJson (ReqBodyJson),
+                                                defaultHttpConfig, https,
+                                                ignoreResponse, req, (/:))
 
 
 newtype SenderM a = SenderM { unwrapSenderM :: ReaderT SenderEnv IO a }

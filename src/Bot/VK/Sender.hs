@@ -9,9 +9,10 @@
 module Bot.VK.Sender where
 
 import           Bot
-import           Bot.Shared
+import           Bot.Shared                    (defaultHttpExceptionHander)
 import           Bot.VK.Sender.Keyboard        (getKeyboard)
-import           Bot.VK.Types.Msg
+import           Bot.VK.Types.Msg              (Msg (attachments, command, randomId, text, userId),
+                                                serializeAttachments)
 import           Bot.VK.Types.Shared           (Attachment (..))
 import           Control.Concurrent            (ThreadId, forkFinally,
                                                 killThread, myThreadId,
@@ -30,8 +31,12 @@ import qualified Data.Map.Strict               as Map
 import           Data.Maybe                    (mapMaybe)
 import           Data.Text                     (Text)
 import qualified Data.Text                     as Text
-import           Logger
-import           Network.HTTP.Req
+import           Logger                        (LogLevel, Logger (getLogLevel),
+                                                logDebug)
+import           Network.HTTP.Req              (GET (GET), MonadHttp (..),
+                                                NoReqBody (NoReqBody),
+                                                defaultHttpConfig, https,
+                                                ignoreResponse, req, (/:), (=:))
 
 
 newtype SenderM a = SenderM { unwrapSenderM :: ReaderT SenderEnv IO a }

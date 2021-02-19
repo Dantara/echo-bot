@@ -4,14 +4,14 @@
 
 module Bot.VK.Fetcher.LongPollServer where
 
-import           Data.Aeson
+import           Data.Aeson         (FromJSON (parseJSON), withObject, (.:))
 import           Data.Aeson.Types   (Parser)
 import           Data.List          (foldl')
 import           Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.List.NonEmpty as NE
 import           Data.Text          (Text)
 import qualified Data.Text          as Text
-import           Network.HTTP.Req
+import           Network.HTTP.Req   (Scheme (Https), Url, https, (/:))
 import           Text.Read          (readMaybe)
 
 

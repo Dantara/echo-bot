@@ -4,7 +4,8 @@ module Config where
 
 import           Bot.Telegram.Types.Config (TelegramConfig)
 import           Bot.VK.Types.Config       (VKConfig)
-import           Data.Aeson
+import           Data.Aeson                (FromJSON (parseJSON), eitherDecode,
+                                            withObject, (.:))
 import qualified Data.ByteString.Lazy      as BS
 
 

@@ -4,7 +4,8 @@ module Bot.Telegram.Types.Updates where
 
 import           Bot.Telegram.Types.Shared (Contact, Dice, FileInfo, Location,
                                             Venue)
-import           Data.Aeson
+import           Data.Aeson                (FromJSON (parseJSON), withObject,
+                                            (.:), (.:?))
 import           Data.Text                 (Text)
 
 

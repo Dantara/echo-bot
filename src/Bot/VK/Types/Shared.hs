@@ -2,7 +2,7 @@
 
 module Bot.VK.Types.Shared where
 
-import           Data.Aeson
+import           Data.Aeson (FromJSON (parseJSON), withObject, (.:), (.:?))
 import           Data.Text  (Text)
 
 

@@ -3,7 +3,12 @@
 
 module Logic where
 
-import           Bot
+import           Bot           (HasMessageQueue (pullMessage, pushMessage),
+                                HasOffset (updateOffset),
+                                HasUpdateQueue (pullUpdate, pushUpdate),
+                                MonadFetcher (..), MonadSender (sendMessage),
+                                MonadSleep (..), MonadTranslator (..),
+                                RepetitionsHandler (..))
 import           Control.Monad ((>=>))
 
 

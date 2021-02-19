@@ -3,8 +3,11 @@
 module Bot.Telegram.Types.Msg where
 
 import           Bot                       (Command (..))
-import           Bot.Telegram.Types.Shared
-import           Data.Aeson
+import           Bot.Telegram.Types.Shared (Contact (Contact), Dice (Dice),
+                                            FileInfo (FileInfo),
+                                            Location (Location), Venue (Venue))
+import           Data.Aeson                (KeyValue ((.=)), ToJSON (toJSON),
+                                            object)
 import           Data.Text                 (Text)
 
 

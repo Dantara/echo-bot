@@ -6,10 +6,12 @@
 module Bot.VK.Translator where
 
 import           Bot
-import           Bot.Shared.RepeatCommandHandler
-import           Bot.VK.Types.Msg
+import           Bot.Shared.RepeatCommandHandler (handleMsgWithRepeatCommand,
+                                                  handleMsgWithText)
+import           Bot.VK.Types.Msg                (Msg (Msg, randomId, userId))
 import           Bot.VK.Types.Shared             (Attachment (..))
-import           Bot.VK.Types.Updates
+import           Bot.VK.Types.Updates            (ReceivedMsg (ReceivedMsg),
+                                                  Upd (receivedMessage))
 import           Control.Concurrent              (forkFinally, killThread,
                                                   myThreadId, threadDelay)
 import           Control.Concurrent.STM.TQueue   (TQueue, tryReadTQueue,
@@ -26,9 +28,11 @@ import           Data.Set                        (Set)
 import qualified Data.Set                        as Set
 import           Data.Text                       (Text)
 import qualified Data.Text                       as Text
-import           Logger
-import           System.Random.TF
-import           System.Random.TF.Gen
+import           Logger                          (LogLevel,
+                                                  Logger (getLogLevel),
+                                                  logDebug, logWarning)
+import           System.Random.TF                (newTFGen)
+import           System.Random.TF.Gen            (RandomGen (next))
 import           Text.Read                       (readMaybe)
 
 

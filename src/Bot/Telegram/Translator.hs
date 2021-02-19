@@ -6,9 +6,12 @@
 module Bot.Telegram.Translator where
 
 import           Bot
-import           Bot.Shared.RepeatCommandHandler
-import           Bot.Telegram.Types.Msg
-import           Bot.Telegram.Types.Updates
+import           Bot.Shared.RepeatCommandHandler (handleMsgWithRepeatCommand,
+                                                  handleMsgWithText)
+import           Bot.Telegram.Types.Msg          (Msg (Msg, chatId),
+                                                  MsgContent (AudioContent, CommandContent, ContactContent, DiceContent, DocumentContent, LocationContent, PhotoContent, StickerContent, TextContent, UnsupportedContent, VenueContent, VideoContent, VideoNoteContent, VoiceContent))
+import           Bot.Telegram.Types.Updates      (ReceivedMsg (ReceivedMsg),
+                                                  Upd (message))
 import           Control.Concurrent              (forkFinally, killThread,
                                                   myThreadId, threadDelay)
 import           Control.Concurrent.STM.TQueue   (TQueue, tryReadTQueue,
@@ -25,7 +28,8 @@ import           Data.Set                        (Set)
 import qualified Data.Set                        as Set
 import           Data.Text                       (Text)
 import qualified Data.Text                       as Text
-import           Logger
+import           Logger                          (LogLevel,
+                                                  Logger (getLogLevel))
 import           Text.Read                       (readMaybe)
 
 
