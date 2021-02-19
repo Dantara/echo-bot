@@ -16,7 +16,7 @@ test_vk_updates :: TestTree
 test_vk_updates =
   testGroup
     "VK Updates tests"
-    [ testCase "Sample long poll server parse" $
+    [ testCase "Sample VK updates parse" $
         decode (BLC.pack $(getSampleUpdates)) @?= Just parsedUpdates
     ]
   where

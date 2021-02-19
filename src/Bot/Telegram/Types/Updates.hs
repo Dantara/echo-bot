@@ -12,12 +12,13 @@ import           Data.Text                 (Text)
 
 
 newtype Updates = Updates { extractUpdates :: [Upd] }
+  deriving (Show, Eq)
 
 
 data Upd = Upd
   { updateId :: Integer
   , message  :: ReceivedMsg
-  }
+  } deriving (Show, Eq)
 
 
 data ReceivedMsg = ReceivedMsg
@@ -36,7 +37,7 @@ data ReceivedMsg = ReceivedMsg
   , receivedDice            :: Maybe Dice
   , receivedVenue           :: Maybe Venue
   , receivedMessageLocation :: Maybe Location
-  }
+  } deriving (Show, Eq)
 
 
 -- * Parsing section

@@ -12,6 +12,7 @@ import           Helpers      (camelToSnakeCase)
 
 
 newtype FileInfo = FileInfo { fileId :: Text }
+  deriving (Show, Eq)
 
 
 data Contact = Contact
@@ -19,24 +20,24 @@ data Contact = Contact
   , firstName   :: Text
   , lastName    :: Maybe Text
   , vcard       :: Maybe Text
-  } deriving (Generic)
+  } deriving (Generic, Show, Eq)
 
 
 newtype Dice = Dice { diceEmoji :: Text }
-  deriving (Generic)
+  deriving (Generic, Show, Eq)
 
 
 data Location = Location
   { longitude :: Float
   , latitude  :: Float
-  } deriving (Generic, FromJSON)
+  } deriving (Generic, FromJSON, Show, Eq)
 
 
 data Venue = Venue
   { venueLocation :: Location
   , venueTitle    :: Text
   , venueAddress  :: Text
-  } deriving (Generic)
+  } deriving (Generic, Show, Eq)
 
 
 -- * Parsing section
