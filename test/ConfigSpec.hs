@@ -29,7 +29,7 @@ test_config =
       { telegramConfigs = [
           TelegramConfig
             { TG.token = Token
-              { extractToken = "1470862909:AAGZF-lhbKci7azP-NHsxiTCdGJ4flHlTDo"}
+              { extractToken = "1470862909:AAGZF-lhbKci7azP-NHsxiTCdGJ4flHlTDo" }
             , TG.helpMsg = "Arbitrary help message"
             , TG.defaultReps = 1
             , TG.repsQuestion = "What amount of repetitions do you prefer?"
@@ -44,7 +44,9 @@ test_config =
       , vkConfigs = [
           VKConfig
             { VK.token = Token
-                { extractToken = "3e142ca1109e4dbac9008679226910e66eed123f50367fd8b679d38854a88ad888e57b3479331fb2b46b9"}
+                { extractToken = "3e142ca1109e4dbac9008679226910e66eed\
+                                 \123f50367fd8b679d38854a88ad888e57b3479331fb2b46b9"
+                }
             , VK.groupId = "201676497"
             , VK.fetcherTimeout = 25
             , VK.helpMsg = "Arbitrary help message"

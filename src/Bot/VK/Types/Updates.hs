@@ -13,13 +13,13 @@ import           Text.Read           (readMaybe)
 data Upd = Upd
   { updateId        :: Integer
   , receivedMessage :: ReceivedMsg
-  } deriving Show
+  } deriving (Eq, Show)
 
 
 data Updates = Updates
   { updatesId       :: Integer
   , receivedUpdates :: [ReceivedUpd]
-  } deriving Show
+  } deriving (Eq, Show)
 
 
 data ReceivedUpd
