@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
@@ -8,7 +9,8 @@ import           Bot           (HasMessageQueue (pullMessage, pushMessage),
                                 HasUpdateQueue (pullUpdate, pushUpdate),
                                 MonadFetcher (..), MonadSender (sendMessage),
                                 MonadSleep (..), MonadTranslator (..),
-                                RepetitionsHandler (..))
+                                RepetitionsHandler (..),
+                                TechMessage (isTechMessage))
 import           Control.Monad ((>=>))
 
 
@@ -24,13 +26,20 @@ translator :: (MonadTranslator m,
                HasUpdateQueue m,
                HasMessageQueue m,
                RepetitionsHandler m,
+               TechMessage m,
                MonadSleep m) => m ()
 translator = pullUpdate >>= maybe
   sleep
   (updateToMessage
    >=> handleRepeatCommand
-   >=> repeatMessage
-   >=> mapM_ pushMessage)
+   >=> handleRepeat)
+  where
+    handleRepeat m = isTechMessage m
+      >>= \case
+        True ->
+          pushMessage m
+        False ->
+          repeatMessage m >>= mapM_ pushMessage
 
 
 sender :: (MonadSender m, HasMessageQueue m, MonadSleep m) => m ()

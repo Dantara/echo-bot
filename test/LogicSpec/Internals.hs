@@ -4,13 +4,7 @@
 module LogicSpec.Internals where
 
 
-import           Bot                      (ChatId, HasMessageQueue (..),
-                                           HasOffset (..), HasRepetitions (..),
-                                           HasUpdateQueue (..),
-                                           MonadFetcher (..), MonadSender (..),
-                                           MonadSleep (..),
-                                           MonadTranslator (..),
-                                           RepetitionsHandler (..))
+import           Bot
 import           Control.Monad.State.Lazy (MonadState, State, StateT (StateT),
                                            gets, modify)
 import           Data.Functor             ((<&>))
@@ -137,6 +131,10 @@ instance RepetitionsHandler TestM where
   repeatMessage msg
     = (chatIdOfMessage msg >>= getRepetitions)
     <&> (`replicate` msg)
+
+
+instance TechMessage TestM where
+  isTechMessage _ = pure False
 
 
 instance MonadSleep TestM where

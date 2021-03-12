@@ -114,6 +114,11 @@ instance RepetitionsHandler TranslatorM where
     pure $ replicate rs msg
 
 
+instance TechMessage TranslatorM where
+  isTechMessage (Msg _ (CommandContent _ _)) = pure True
+  isTechMessage _                            = pure False
+
+
 instance Runnable TranslatorM TranslatorEnv where
   runBot app = runReaderT (unwrapTranslatorM app)
 

@@ -112,6 +112,11 @@ instance RepetitionsHandler TranslatorM where
         updateMsg n m = m { randomId = randomId m + n }
 
 
+instance TechMessage TranslatorM where
+  isTechMessage (Msg _ _ _ _ (Just _)) = pure True
+  isTechMessage _                      = pure False
+
+
 instance HasUpdateQueue TranslatorM where
   type Update TranslatorM = Upd
 

@@ -48,6 +48,11 @@ class (HasRepetitions m, Logger m) => RepetitionsHandler m where
   repeatMessage :: Message m -> m [Message m]
 
 
+-- | Checks whether message is technical or not
+class Monad m => TechMessage m where
+  isTechMessage :: Message m -> m Bool
+
+
 -- | Provides an ability to suspend execution of part of application
 class (Monad m) => MonadSleep m where
   sleep :: m ()
