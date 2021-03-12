@@ -14,7 +14,13 @@ This project relies on the [Haskell Stack tool](https://docs.haskellstack.org/en
 
 This applications uses external config file called `bot.config` to set up its behavour.
 
-The sample config is placed into root directory of this repository.
+The sample config is placed into root directory of this repository with a name `bot.config.example`.
+
+To run an app you should make a copy of a sample config (without `.example`) example extention or just make a soft link to sample config:
+
+```
+ln -s bot.config bot.config.example
+```
 
 *NOTE*: The `log_level` can be either `debug`, `info`, `warning` or `error`. 
 Delays are specified in miliseconds.
